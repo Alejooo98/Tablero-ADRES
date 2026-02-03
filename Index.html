@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tablero Ejecutivo ADRES | SIES Salud</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <!-- Google Fonts: Montserrat (Official Branding) -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Custom Config for Branding -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sies: {
+                            blue: '#0170B9',   // Primary Branding Color
+                            dark: '#21406d',   // Headings
+                            text: '#3a3a3a',   // Body Text
+                            gray: '#f5f5f5',   // Background
+                            light: '#ffffff'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Montserrat', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #f8fafc;
+            /* Light Background */
+            color: #3a3a3a;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Modern White Cards with subtle shadow */
+        .dashboard-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+            border: 1px solid #e2e8f0;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .dashboard-card:hover {
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+            border-color: #cbd5e1;
+        }
+
+        /* Header styling matching corporate site */
+        .site-header {
+            background: white;
+            border-bottom: 2px solid #eaeaea;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Chart Containers */
+        .chart-container {
+            position: relative;
+            min-height: 350px;
+            width: 100%;
+        }
+
+        /* Compact Scrollbar for tables/lists */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50">
+
+    <!-- Navbar / Header -->
+    <header class="site-header sticky top-0 z-50">
+        <div class="max-w-[1920px] mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-4">
+
+            <!-- Left: Logo & Title -->
+            <div class="flex items-center gap-6 w-full md:w-auto">
+                <img src="https://siessalud.com/wp-content/uploads/2022/08/LOGO-POLICROMIA-SIES-SALUD-circ-02.png"
+                    alt="SIES Salud Logo" class="h-12 w-auto object-contain">
+
+                <div class="border-l-2 border-slate-200 pl-4">
+                    <h1 class="text-xl md:text-2xl font-bold text-sies-dark leading-none">
+                        Tablero ADRES
+                    </h1>
+                    <p class="text-[11px] text-slate-500 font-medium tracking-wide uppercase mt-1">
+                        Inteligencia de Negocios
+                    </p>
+                </div>
+            </div>
+
+            <!-- Right: Controls & Filters -->
+            <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto items-center">
+
+                <!-- Process Selector -->
+                <div class="relative w-full sm:w-64">
+                    <label
+                        class="absolute -top-2 left-2 bg-white px-1 text-[10px] font-bold text-sies-blue uppercase tracking-wide">
+                        Periodo de Proceso
+                    </label>
+                    <select id="process-selector"
+                        class="w-full bg-slate-50 border border-slate-300 text-sies-dark text-sm font-semibold rounded-lg focus:ring-sies-blue focus:border-sies-blue block p-2.5 shadow-sm">
+                        <option>Cargando datos...</option>
+                    </select>
+                </div>
+
+                <!-- Last Update Label -->
+                <div class="text-right hidden lg:block">
+                    <p class="text-[10px] text-slate-400 font-medium">Última Actualización</p>
+                    <p class="text-xs font-bold text-sies-dark" id="last-update">--/--/----</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-[1920px] mx-auto w-full p-4 lg:p-6 space-y-6">
+
+        <!-- 1. Global Filters Bar -->
+        <div class="dashboard-card p-4 flex flex-col lg:flex-row gap-4 items-end bg-white">
+            <!-- Filter EPS -->
+            <div class="flex-1 w-full">
+                <label class="block mb-1 text-xs font-bold text-slate-500 uppercase">Filtrar por EPS</label>
+                <input type="text" list="list-eps" id="input-eps"
+                    class="bg-slate-50 border border-slate-300 text-gray-900 text-sm rounded-lg focus:ring-sies-blue focus:border-sies-blue block w-full p-2.5"
+                    placeholder="Escriba para buscar...">
+                <datalist id="list-eps"></datalist>
+            </div>
+
+            <!-- Filter IPS -->
+            <div class="flex-[2] w-full">
+                <label class="block mb-1 text-xs font-bold text-slate-500 uppercase">Filtrar por IPS (Nombre o
+                    NIT)</label>
+                <input type="text" list="list-ips" id="input-ips"
+                    class="bg-slate-50 border border-slate-300 text-gray-900 text-sm rounded-lg focus:ring-sies-blue focus:border-sies-blue block w-full p-2.5"
+                    placeholder="Escriba para buscar...">
+                <datalist id="list-ips"></datalist>
+            </div>
+
+            <!-- Reset Button -->
+            <button id="btn-reset"
+                class="px-5 py-2.5 text-sm font-medium text-sies-blue bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors">
+                Limpiar Filtros
+            </button>
+        </div>
+
+        <!-- 2. KPI Cards Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+
+            <!-- KPI Total -->
+            <div class="dashboard-card p-5 border-l-4 border-l-sies-blue relative overflow-hidden">
+                <div class="absolute right-0 top-0 p-3 opacity-20">
+                    <!-- Icon: Currency Dollar -->
+                    <svg class="w-16 h-16 text-sies-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                        </path>
+                    </svg>
+                </div>
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 relative z-10">Total Confirmado
+                </p>
+                <h3 class="text-2xl lg:text-3xl font-bold text-sies-dark tracking-tight relative z-10" id="kpi-total">
+                    ---</h3>
+                <p class="text-[10px] text-green-600 font-medium mt-1 flex items-center gap-1 relative z-10">
+                    <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span> Datos Validados
+                </p>
+            </div>
+
+            <!-- KPI IPS -->
+            <div class="dashboard-card p-5 border-l-4 border-l-emerald-500 relative overflow-hidden">
+                <div class="absolute right-0 top-0 p-3 opacity-20">
+                    <!-- Icon: Office Building -->
+                    <svg class="w-16 h-16 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-3m0 0h10m0 0v3m-10-3h10">
+                        </path>
+                    </svg>
+                </div>
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 relative z-10">IPS Reportadas
+                </p>
+                <h3 class="text-2xl lg:text-3xl font-bold text-gray-800 relative z-10" id="kpi-ips">---</h3>
+            </div>
+
+            <!-- KPI EPS -->
+            <div class="dashboard-card p-5 border-l-4 border-l-violet-500 relative overflow-hidden">
+                <div class="absolute right-0 top-0 p-3 opacity-20">
+                    <!-- Icon: Credit Card / Identity -->
+                    <svg class="w-16 h-16 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z">
+                        </path>
+                    </svg>
+                </div>
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 relative z-10">EPS Pagadoras
+                </p>
+                <h3 class="text-2xl lg:text-3xl font-bold text-gray-800 relative z-10" id="kpi-eps">---</h3>
+            </div>
+
+            <!-- KPI Records -->
+            <div class="dashboard-card p-5 border-l-4 border-l-amber-500 relative overflow-hidden">
+                <div class="absolute right-0 top-0 p-3 opacity-20">
+                    <!-- Icon: Clipboard List -->
+                    <svg class="w-16 h-16 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01">
+                        </path>
+                    </svg>
+                </div>
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 relative z-10">Total Giros</p>
+                <h3 class="text-2xl lg:text-3xl font-bold text-gray-800 relative z-10" id="kpi-records">---</h3>
+            </div>
+
+            <!-- KPI Files -->
+            <div class="dashboard-card p-5 border-l-4 border-l-slate-500 relative bg-slate-50 overflow-hidden">
+                <div class="absolute right-0 top-0 p-3 opacity-20">
+                    <!-- Icon: Folder Open -->
+                    <svg class="w-16 h-16 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z">
+                        </path>
+                    </svg>
+                </div>
+                <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 relative z-10">Archivos
+                    Procesados</p>
+                <h3 class="text-2xl lg:text-3xl font-bold text-gray-600 relative z-10" id="kpi-files-count">---</h3>
+            </div>
+
+        </div>
+
+        <!-- 3. Charts Area -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[400px]">
+
+            <!-- Chart Left -->
+            <div class="dashboard-card p-6 flex flex-col h-full">
+                <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-2">
+                    <h3 class="text-lg font-bold text-sies-dark flex items-center gap-2">
+                        <span class="w-2 h-6 bg-sies-blue rounded-sm"></span>
+                        Top IPS por Valor de Giro
+                    </h3>
+                </div>
+                <div class="chart-container flex-1">
+                    <canvas id="chartIPS"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart Right -->
+            <div class="dashboard-card p-6 flex flex-col h-full">
+                <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-2">
+                    <h3 class="text-lg font-bold text-sies-dark flex items-center gap-2">
+                        <span class="w-2 h-6 bg-violet-600 rounded-sm"></span>
+                        Top EPS por Origen de Fondos
+                    </h3>
+                </div>
+                <div class="chart-container flex-1">
+                    <canvas id="chartEPS"></canvas>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-auto py-6">
+        <div
+            class="max-w-[1920px] mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500">
+            <p>&copy; 2026 SIES Salud IPS. Todos los derechos reservados.</p>
+            <p class="font-medium">Generado por ADRES Bot v7.2 &bull; Tecnología Python RPA</p>
+        </div>
+    </footer>
+
+    <!-- Logic Injection Marker -->
+    <script>
+        window.ADRES_DATA = {"master": {"800251440": "SANITAS", "800000118": "ESE HOSPITAL DPTAL UNIV DEL QUINDIO SAN JUAN DE DIOS", "805001157": "SERVICIO OCCIDENTAL DE SALUD", "800088702": "SURAMERICANA", "800012189": "CLINICA SAN JOSE DE CUCUTA S.A.", "800014918": "EMPRESA SOCIAL DEL ESTADO HOSPITAL UNIVERSITARIO ERASMO MEOZ", "900226715": "COOSALUD", "800037021": "HOSPITAL DEPARTAMENTAL DE GRANADA ESE", "800038024": "UNIDAD CLINICA LA MAGDALENA S.A.S.", "800048954": "CLINICA VERSALLES S.A.", "800130907": "SALUD TOTAL", "800065396": "INSTITUTO DE DIAGNOSTICO MEDICO S.A.", "860066942": "COMPENSAR", "890303093": "COMFENALCO VALLE", "800067065": "PROMOTORA MEDICA LAS AMERICAS S.A", "800067515": "CLINICA LA MILAGROSA S.A.", "800107179": "INSTITUTO DEL CORAZON S.A.S", "900604350": "SAVIA SALUD", "800149026": "INSTITUTO DE CANCEROLOGIA S.A", "800179966": "CLINICA REINA CATALINA S.A.S.", "806008394": "MUTUAL SER", "800183943": "CLINICA SANTA MARIA S.A.S", "901543761": "FAMILIAR DE COLOMBIA", "800185449": "AVIDANTI S.A.S", "800194798": "ORGANIZACION CLINICA BONNADONA - PREVENIR S.A.S.", "800197601": "ANGIOGRAFIA DE OCCIDENTE S.A.", "800200789": "CLINICA CHIA S.A.", "800204153": "EMPRESA SOCIAL DEL ESTADO HOSPITAL SAN VICENTE DE PAUL", "800215019": "SOCIEDAD CORDOBESA CIRUGIA VASCULAR LIMITADA", "800218979": "HOSPITAL SAN VICENTE DE  ARAUCA ESE", "800223206": "BIENESTAR IPS SAS", "800227072": "EUSALUD S.A", "800231215": "HOSPITAL DEL SARARE EMPRESA SOCIAL DEL ESTADO", "800231235": "EMPRESA SOCIAL DEL ESTADO HOSPITAL UNIVERSITARIO SAN JORGE", "800254132": "MEDICADIZ S.A.S.", "801000713": "ONCOLOGOS DEL OCCIDENTE SOCIEDAD ANOMINA", "801001440": "RED SALUD ARMENIA EMPRESA SOCIAL DEL ESTADO E.S.E.", "804008792": "FORPRESALUD I.P.S. SAS", "805011262": "RTS  S.A.S.", "806015201": "GESTION SALUD SAS", "807004352": "EMPRESA SOCIAL DEL ESTADO E.S.E IMSALUD", "807004631": "E.S.E. HOSPITAL LOCAL JORGE CRISTO SAHIUM VILLA DEL ROSARIO", "807008857": "EMPRESA SOCIAL DEL ESTADO HOSPITAL REGIONAL NORTE", "809003590": "UNIDAD DE SALUD DE IBAGUE USI - ESE", "810000913": "ESE HOSPITAL SAN FELIX", "811016192": "INSTITUCION PRESTADORA DE SERVICIOS DE SALUD \" IPS UNIVERSITARIA \"", "811042064": "CENTRO CARDIOVASCULAR SOMER INCARE S.A", "812003851": "E.S.E HOSPITAL SAN JUAN DE SAHAGUN", "812004935": "CLINICA MATERNO INFANTIL CASA DEL NIÑO SAS", "812005522": "FUNDACION AMIGOS DE LA SALUD", "812007194": "ONCOMEDICA S.A.S", "813001952": "CLINICA MEDILASER S.A.S", "813011577": "CLINICA UROS S.A.", "814006170": "CLINICA DE ORTOPEDIA Y FRACTURAS TRAUMEDICAL S.A.S", "816001182": "AUDIFARMA S.A.", "817001920": "REHABILITAR LTDA", "820001277": "CENTRO DE CANCEROLOGIA DE BOYACA LTDA.", "820005389": "EMPRESA SOCIAL DEL ESTADO HOSPITAL REGIONAL DE CHIQUINQUIRA", "821000831": "HOSPITAL RUBEN CRUZ VELE EZ E.S.E.", "822006595": "E.S.E. DEL DEPARTAMENTO DEL META  E.S.E. SOLUCION SALUD", "824000687": "SOCIEDAD DE ONCOLOGIA Y HEMATOLOGIA DEL CESAR S.A.S", "824001041": "CLINICA MEDICOS S.A", "830007355": "DAVITA COLOMBIA S.A.S", "830102646": "TRANSPORTES ESIVANS SAS", "830510991": "CLINICA ESPECIALIZADA LA CONCEPCION S.A.S", "832001966": "EMPRESA SOCIAL DEL ESTADO HOSPITAL SAN JOSE DEL GUAVIARE", "838000096": "HOSPITAL SAN RAFAEL DE LETICIA E.S.E", "837000084": "MALLAMAS", "844002258": "CLINICA MEISEL S.A.S", "891856000": "CAPRESOCA", "844004197": "RED SALUD CASANARE EMPRESA SOCIAL DEL ESTADO", "846000253": "E.S.E. HOSPITAL LOCAL", "860007336": "CAJA COLOMBIANA DE SUBSIDIO FAMILIAR COLSUBSIDIO", "860013570": "CAJA DE COMPENSACION FAMILIAR CAFAM", "860015536": "HOSPITAL UNIVERSITARIO SAN IGNACIO", "860035992": "FUNDACION CARDIO INFANTIL - INSTITUTO DE CARDIOLOGIA", "860037950": "FUNDACION SANTA FE DE BOGOTA", "890102768": "ORGANIZACION CLINICA GENERAL DEL NORTE S.A.", "890205361": "FUNDACION OFTALMOLOGICA DE SANTANDER - FOSCAL", "890212568": "FUNDACION CARDIOVASCULAR DE COLOMBIA", "890500675": "COMFAORIENTE", "890300513": "CLINICA DE OCCIDENTE S.A.", "890301430": "INSTITUTO DE RELIGIOSAS DE SAN JOSE DE GERONA", "890303461": "HOSPITAL UNIVERSITARIO DEL VALLE EVARISTO GARCIA E.S.E.", "890307200": "CLINICA IMBANACO SAS", "890324177": "FUNDACION VALLE DEL LILI", "890480135": "FUNDACION HOSPITAL INFANTIL NAPOLEON FRANCO PAREJA", "890501438": "EMPRESA SOCIAL DEL ESTADO HOSPITAL EMIRO QUINTERO CAÑIZARES", "890680025": "EMPRESA SOCIAL DEL ESTADO HOSPITAL SAN RAFAEL DE FUSAGASUGA", "890701718": "HOSPITAL REGIONAL EMPRESA DEL ESTADO EL LIBANO-TOLIMA", "890706833": "HOSPITAL FEDERICO LLERAS ACOSTA DE IBAGUE TOLIMA - EMPRESA SOCIAL DEL ESTADO", "890801099": "HOSPITAL DEPARTAMENTAL UNIVERSITARIO SANTA SOFIA DE CALDAS", "890801201": "CRUZ ROJA COLOMBIANA SECCIONAL CALDAS", "890801989": "HOSPITAL DEPARTAMENTAL SAN JUAN DE DIOS DE RIOSUCIO - CALDAS E.S.E", "890807591": "SERVICIOS ESPECIALES DE SALUD", "890900518": "FUNDACION HOSPITALARIA SAN VICENTE DE PAUL", "890901826": "HOSPITAL PABLO TOBON URIBE", "890902922": "UNIVERSIDAD PONTIFICIA BOLIVARIANA", "890904646": "ESE HOSPITAL GENERAL DE MEDELLIN LUZ CASTRO DE GUTIERREZ", "890939936": "SOCIEDAD MEDICA RIONEGRO S.A  SOMER S.A.", "890982264": "HOSPITAL SAN JUAN DE DIOS", "890985122": "COOPERATIVA DE HOSPITALES DE ANTIOQUIA", "890985603": "EMPRESA SOCIAL DEL ESTADO HOSPITAL SAN SEBASTIAN DE URABA", "890985703": "EMPRESA SOCIAL DEL ESTADO HOSPITAL MARCO FIDEL SUAREZ", "891079999": "E.S.E.HOSPITAL SAN JERONIMO DE MONTERIA", "891080015": "E.S.E. HOSPITAL SANDIEGO", "891180134": "EMPRESA SOCIAL DEL ESTADO HOSPITAL DPTAL SAN ANTONIO", "891180268": "EMPRESA SOCIAL DEL ESTADO HOSPITAL UNIVERSITARIO HERNANDO MONCALEANO PERDOMO", "891200528": "HOSPITAL UNIVERSITARIO DEPARTAMENTAL DE NARIÑO E.S.E", "891300047": "CLINICA PALMIRA S.A", "891380054": "FUNDACION HOSPITAL SAN JOSE DE  BUGA", "891409291": "EVE DISTRIBUCIONES S.A.S", "891480000": "CAJA DE COMPENSACION FAMILIAR DE RISARALDA", "891580002": "HOSPITAL UNIVERSITARIO SAN JOSE DE POPAYAN E.S.E.", "891800231": "EMPRESA SOCIAL DEL ESTADO HOSPITAL UNIVERSITARIO SAN RAFAEL DE TUNJA", "891800570": "HOSPITAL JOSE CAYETANO VASQUEZ", "891855039": "HOSPITAL REGIONAL DE SOGAMOSO E.S.E.", "891855438": "EMPRESA SOCIAL DEL ESTADO HOSPITAL REGIONAL DE DUIT", "891855847": "CLINICA CASANARE S.A.", "891856507": "SOCIEDAD CLINICA BOYACA LIMITADA", "892000501": "HOSPITAL DEPARTAMENTAL DE VILLAVICENCIO", "892115010": "EMPRESA SOCIAL DEL ESTADO HOSPITAL SAN RAFAEL NIVEL II", "892300678": "ETICOS SERRANO GOMEZ LTDA", "892399994": "HOSPITAL ROSARIO PUMAREJO DE LOPEZ", "899999017": "SOCIEDAD DE CIRUGIA DE BOGOTA HOSPITAL DE SAN JOSE", "899999032": "HOSPITAL UNIVERSITARIO DE LA SAMARITANA E.S.E.", "899999092": "INSTITUTO NACIONAL DE CANCEROLOGIA", "899999123": "FUNDACION HOSPITAL DE LA MISERICORDIA", "899999151": "EMPRESA SOCIAL DEL ESTADO HOSPITAL SAN RAFAEL DE  FACATATIVA", "900005955": "CLINICA LA ESPERANZA DE MONTERIA S.A.S", "900006037": "EMPRESA SOCIAL DEL ESTADO HOSPITAL UNIVERSITARIO DE SANTANDER E.S.E.", "900034131": "EMPRESA SOCIAL DEL ESTADO DEPARTAMENTAL DE PRIMER NIVEL MORENO Y CLAVIJO", "900034438": "FUNDACION PARA EL SERVICIO INTEGRAL DE ATENCION MEDICA - FUNDACION SIAM", "900038926": "PROMOTORA MEDICA Y ODONTOLOGICA DE ANTIOQUIA S.A.", "900057926": "MEDICINA Y TECNOLOGIA EN SALUD S.A.S", "900066347": "EMPRESA SOCIAL DEL ESTADO HOSPITAL REGIONAL DE SAN GIL", "900098476": "FUNDACION HOSPITAL INFANTIL UNIVERSITARIO DE SAN JOSE", "900098550": "OFFIMEDICAS S.A.", "900112351": "UNIDAD HERMATOLOGICA ESPECIALIZADA  IPS S.A.S", "900123436": "SOCIEDAD INTEGRAL DE ESPECIALISATAS EN SALUD SAS", "900168679": "MEDICIPS S.A.S.", "900177115": "INVERSIONES LEAL Y OXIGENOS SAS", "900210981": "CORPORACION HOSPITALARIA JUAN CIUDAD", "900213617": "CORPORACION CLINICA PRIMAVERA", "900219120": "VIVA 1A IPS S.A.", "900219866": "MEDICARTE S.A", "900223749": "FUNDACION UNIDAD DE CUIDADOS INTENSIVOS DOÑA PILAR", "900236008": "CUIDARTE EN CASA S.A.S.", "900240018": "LOS COMUNEROS HOSPITAL UNIVERSITARIO DE BUCARAMANGA S.A.", "900261353": "FUNDACION HOSPITAL SAN VICENTE DE PAUL - RIONEGRO", "900293923": "IPS ESPECIALIZADA S.A", "900298928": "ART MEDICA S.A.S.", "900314301": "SALUD VITAL DEL HUILA IPS", "900342064": "SOCIEDAD COMERCIALIZADORA DE INSUMOS Y SERVICIOS MEDICOS SAS", "900345765": "EMPRESA MULTIACTIVA DE SALUD SERMULTISALUD SAS", "900386591": "GYO MEDICAL I.P.S. S.A.S.", "900390423": "PROMOTORA CLINICA ZONA FRANCA DE URABA S.A.S.", "900421895": "FUNDACIÓN CLINICA DEL NORTE", "900470642": "MEDICAL DUARTE ZF S.A.S.", "900475704": "INSUASTY ONCOLOGIA E INVESTIGACION S.A.S.", "900532504": "DAVITA SAS", "900578105": "CORPORACION SALUD UN", "900580962": "DISFARMA GC SAS", "900718172": "CLINICA INTERNACIONAL DE ALTA TECNOLOGIA CLINALTEC S.A.S.", "900783939": "TAKEDA COLOMBIA S.A.S.", "900826841": "MEDICINA Y TERAPIAS DOMICILIARIAS SAS", "900900122": "HEALTH Y LIFE IPS SAS", "900958564": "SUBRED INTEGRADA DE SERVICIOS DE SALUD SUR E.S.E.", "900298372": "CAPITAL SALUD", "900959048": "SUBRED INTEGRADA DE SERVICIOS DE SALUD SUR OCCIDENTE E.S.E.", "900959051": "SUBRED INTEGRADA DE SERVICIOS DE SALUD CENTRO ORIENTE E.S.E.", "900971006": "SUBRED INTEGRADA DE SERVICIOS DE SALUD NORTE E.S.E.", "900986941": "UNIDAD PRESTADORA DE SERVICIOS DE SALUD MENTAL LTDA UNIPSSAM", "901002487": "FUNDACION CTIC - CENTRO DE TRATAMIENTO E INVESTIGACIÓN SOBRE CÁNCER LUIS CARLOS SARMIENTO ANGULO", "901085352": "INSTITUTO MÉDICO DE ALTA TECNOLOGÍA S.A.S.", "901108114": "NUEVA EMPRESA SOCIAL DEL ESTADO HOSPITAL DEPARTAMENTAL SAN FRANCISCO DE ASIS", "901108368": "CLINICA DE ALTA COMPLEJIDAD SANTA BARBARA S.A.S", "901201887": "HOSPITAL DE ALTA COMPLEJIDAD DEL PUTUMAYO SAS ZOMAC", "901352353": "CLINICA LA SAGRADA FAMILIA S.A.S.", "901440000": "EMPRESA SOCIAL DEL ESTADO (ESE) HOSPITAL DEPARTAMENTAL DE SAN ANDRES, PROVIDENCIA Y SANTA CATALINA", "901532463": "HOSPITAL DE ALTA COMPLEJIDAD DEL MAGDALENA CENTRO SAS", "901700170": "E.S.E HOSPITAL DEPARTAMENTAL INTERCULTURAL RENACER", "830003564": "FAMISANAR", "900156264": "NUEVA EPS", "800123572": "CLINICA CHINITA S.A.", "800250634": "MEDICINA INTEGRAL S.A", "802020334": "QUIMIO SALUD", "804002599": "CENTRO DE ATENCION Y DIAGNOSTICO DE ENFERMEDADES", "828002423": "DISTRIBUIDORA COLOMBIANA DE MEDICAMENTOS S.A.S. DISCOLMEDICA S.A.S.", "829001256": "ESE HOSPITAL MANUEL ELKIN PATARROYO DE SANTA ROSA DEL SUR - BOLIVAR", "840001036": "CENTRO HOSPITAL DIVINO NIÑO E.S.E", "860002566": "FLOTA LA MACARENA S.A.", "860013704": "GASES INDUSTRIALES DE COLOMBIA S.A.", "860040094": "OXIGENOS DE COLOMBIA LTDA", "891200209": "FUNDACION HOSPITAL SAN PEDRO", "891855029": "HOSPITAL REGIONAL DE LA ORINOQUIA ESE", "892300708": "CLINICA VALLEDUPAR SA", "900013939": "CORPORACION PARA LA ATENCION Y EL DIAGNOSTICO DE ENFERMEDADE", "900155231": "SANAMEDIC S.A.S.", "900171211": "GLOBAL LIFE AMBULANCIAS S.A.S", "900204617": "MEDICUC IPS LTDA", "900215983": "CLINICA BELO HORIZONTE SAS", "900274663": "SALUD LLANOS IPS LTDA", "900611961": "RHS ALIANZA HOMECARE IPS SAS", "900772387": "CLINICA ALTA COMPLEJIDAD DE AGUACHICA SAS", "900785142": "MOVIL VIDA S.A.S", "900856982": "AUNARSALUD SERVICIOS INTEGRALES EN SALUD SAS", "901100223": "CLINICA TRAUMANORTE S.A.S", "901153925": "CLÍNICA NUEVA EL LAGO S.A.S", "901270863": "INTERNATIONAL PHARMACEUTICAL PRODUCTS SAS", "811038014": "GRUPO ONCOLOGICO INTERNACIONAL S.A.", "822001338": "UNIDAD CLINICA DEL SISTEMA NERVIOSO LTDA"}, "history": {"1 proceso de Enero 2026": [{"e": "800130907", "i": "816001182", "v": 28526592875.0}, {"e": "800088702", "i": "860007336", "v": 13023267640.0}, {"e": "800130907", "i": "900580962", "v": 11932802061.0}, {"e": "800251440", "i": "900240018", "v": 8703680820.0}, {"e": "800088702", "i": "900219120", "v": 8212902643.0}, {"e": "800130907", "i": "900293923", "v": 8197635753.0}, {"e": "805001157", "i": "900219120", "v": 5300000000.0}, {"e": "800088702", "i": "800149026", "v": 5042744453.0}, {"e": "860066942", "i": "805011262", "v": 4867857554.0}, {"e": "805001157", "i": "800048954", "v": 4500000000.0}, {"e": "860066942", "i": "860035992", "v": 4096021911.0}, {"e": "860066942", "i": "900210981", "v": 4001889457.0}, {"e": "800130907", "i": "900342064", "v": 3901250312.0}, {"e": "800088702", "i": "890324177", "v": 3448768347.0}, {"e": "800088702", "i": "900219866", "v": 3212283860.0}, {"e": "860066942", "i": "900219120", "v": 3106664284.0}, {"e": "860066942", "i": "800065396", "v": 3031678320.0}, {"e": "800088702", "i": "890939936", "v": 2864506395.0}, {"e": "800251440", "i": "891480000", "v": 2713266314.0}, {"e": "800251440", "i": "891180268", "v": 2294776316.0}, {"e": "800088702", "i": "890300513", "v": 2287176893.0}, {"e": "800088702", "i": "890901826", "v": 2196538080.0}, {"e": "890303093", "i": "800065396", "v": 2004499305.0}, {"e": "805001157", "i": "890324177", "v": 2000000000.0}, {"e": "805001157", "i": "900168679", "v": 1912228875.0}, {"e": "800251440", "i": "900900122", "v": 1749046702.0}, {"e": "800251440", "i": "891800231", "v": 1681150308.0}, {"e": "800130907", "i": "890300513", "v": 1650867485.0}, {"e": "860066942", "i": "900219866", "v": 1516014461.0}, {"e": "806008394", "i": "816001182", "v": 1500000000.0}, {"e": "800088702", "i": "891480000", "v": 1438634535.0}, {"e": "800088702", "i": "800067065", "v": 1432311664.0}, {"e": "800130907", "i": "824000687", "v": 1371830128.0}, {"e": "890303093", "i": "891409291", "v": 1352411655.0}, {"e": "860066942", "i": "860037950", "v": 1300992352.0}, {"e": "800130907", "i": "899999017", "v": 1257442346.0}, {"e": "800088702", "i": "900261353", "v": 1251726657.0}, {"e": "860066942", "i": "899999092", "v": 1213728224.0}, {"e": "800251440", "i": "900971006", "v": 1199016609.0}, {"e": "890303093", "i": "890324177", "v": 1169000000.0}, {"e": "860066942", "i": "900098476", "v": 1120561616.0}, {"e": "800088702", "i": "890307200", "v": 1080209652.0}, {"e": "800251440", "i": "891855847", "v": 1079557419.0}, {"e": "800251440", "i": "805011262", "v": 1061230037.0}, {"e": "800088702", "i": "900298928", "v": 1035878826.0}, {"e": "860066942", "i": "860015536", "v": 1026157382.0}, {"e": "860066942", "i": "899999032", "v": 1004911244.0}, {"e": "800088702", "i": "900390423", "v": 974046157.0}, {"e": "860066942", "i": "899999123", "v": 963573206.0}, {"e": "800088702", "i": "890902922", "v": 948112120.0}, {"e": "800251440", "i": "900123436", "v": 924281461.0}, {"e": "800251440", "i": "891855438", "v": 920934876.0}, {"e": "800130907", "i": "900098476", "v": 914476296.0}, {"e": "860066942", "i": "900098550", "v": 902035509.0}, {"e": "806008394", "i": "900223749", "v": 900000000.0}, {"e": "860066942", "i": "899999017", "v": 899792493.0}, {"e": "800130907", "i": "800065396", "v": 869635481.0}, {"e": "800088702", "i": "860035992", "v": 851737175.0}, {"e": "890303093", "i": "900826841", "v": 800000000.0}, {"e": "806008394", "i": "890480135", "v": 794688996.0}, {"e": "900298372", "i": "900959051", "v": 790232495.0}, {"e": "800088702", "i": "900038926", "v": 756044513.0}, {"e": "800088702", "i": "890807591", "v": 722462052.0}, {"e": "800251440", "i": "891580002", "v": 693773010.0}, {"e": "860066942", "i": "899999151", "v": 667657134.0}, {"e": "806008394", "i": "812007194", "v": 649146925.0}, {"e": "900298372", "i": "900959048", "v": 644161097.0}, {"e": "800088702", "i": "801000713", "v": 635930139.0}, {"e": "800130907", "i": "900900122", "v": 625938769.0}, {"e": "860066942", "i": "900293923", "v": 622590449.0}, {"e": "800130907", "i": "899999123", "v": 621500113.0}, {"e": "800130907", "i": "800179966", "v": 620986257.0}, {"e": "800088702", "i": "890900518", "v": 584005138.0}, {"e": "800251440", "i": "890939936", "v": 565148173.0}, {"e": "800088702", "i": "900578105", "v": 537984365.0}, {"e": "860066942", "i": "900578105", "v": 537881833.0}, {"e": "800251440", "i": "811042064", "v": 537386208.0}, {"e": "900298372", "i": "900958564", "v": 519519892.0}, {"e": "800251440", "i": "899999092", "v": 515538884.0}, {"e": "806008394", "i": "890102768", "v": 507062972.0}, {"e": "860066942", "i": "901002487", "v": 502638248.0}, {"e": "890303093", "i": "890307200", "v": 500000000.0}, {"e": "800130907", "i": "800185449", "v": 493172939.0}, {"e": "805001157", "i": "800000118", "v": 483698350.0}, {"e": "800251440", "i": "900342064", "v": 473109445.0}, {"e": "800130907", "i": "812007194", "v": 470419678.0}, {"e": "800251440", "i": "890324177", "v": 465187001.0}, {"e": "800088702", "i": "890301430", "v": 458540683.0}, {"e": "800088702", "i": "900210981", "v": 449471740.0}, {"e": "860066942", "i": "891409291", "v": 446590850.0}, {"e": "800088702", "i": "890212568", "v": 430358294.0}, {"e": "800130907", "i": "811042064", "v": 425765877.0}, {"e": "860066942", "i": "900958564", "v": 421697457.0}, {"e": "860066942", "i": "900959048", "v": 420009667.0}, {"e": "800251440", "i": "800000118", "v": 412539863.0}, {"e": "805001157", "i": "800231235", "v": 411982596.0}, {"e": "890303093", "i": "890303461", "v": 400000000.0}, {"e": "805001157", "i": "901108368", "v": 400000000.0}, {"e": "900298372", "i": "900971006", "v": 398513733.0}, {"e": "800088702", "i": "890102768", "v": 371231837.0}, {"e": "800130907", "i": "890324177", "v": 370445299.0}, {"e": "800251440", "i": "824001041", "v": 354583765.0}, {"e": "900226715", "i": "900826841", "v": 353756000.0}, {"e": "800251440", "i": "860037950", "v": 342521447.0}, {"e": "800130907", "i": "824001041", "v": 335961775.0}, {"e": "860066942", "i": "900971006", "v": 327037142.0}, {"e": "800251440", "i": "892000501", "v": 323092609.0}, {"e": "800088702", "i": "860015536", "v": 322902561.0}, {"e": "800251440", "i": "900057926", "v": 319073165.0}, {"e": "800251440", "i": "891200528", "v": 314362450.0}, {"e": "800130907", "i": "901085352", "v": 308611655.0}, {"e": "806008394", "i": "901085352", "v": 307247775.0}, {"e": "805001157", "i": "830007355", "v": 300000000.0}, {"e": "800088702", "i": "800194798", "v": 296914651.0}, {"e": "800251440", "i": "899999032", "v": 296595179.0}, {"e": "800251440", "i": "811016192", "v": 291202058.0}, {"e": "900226715", "i": "800014918", "v": 290209041.0}, {"e": "800251440", "i": "891180134", "v": 285636969.0}, {"e": "800251440", "i": "900959048", "v": 282572534.0}, {"e": "900226715", "i": "805011262", "v": 268659000.0}, {"e": "800088702", "i": "890985703", "v": 268349402.0}, {"e": "800088702", "i": "800200789", "v": 268051716.0}, {"e": "800251440", "i": "901440000", "v": 266385328.0}, {"e": "800130907", "i": "900261353", "v": 266356196.0}, {"e": "800088702", "i": "800000118", "v": 261734833.0}, {"e": "860066942", "i": "900959051", "v": 261016597.0}, {"e": "800251440", "i": "860007336", "v": 257152075.0}, {"e": "800251440", "i": "899999123", "v": 254396414.0}, {"e": "806008394", "i": "806015201", "v": 250000000.0}, {"e": "800130907", "i": "900718172", "v": 237372657.0}, {"e": "800251440", "i": "891855039", "v": 235933782.0}, {"e": "800251440", "i": "900783939", "v": 232182000.0}, {"e": "800251440", "i": "890680025", "v": 229541933.0}, {"e": "860066942", "i": "890680025", "v": 227458506.0}, {"e": "800251440", "i": "820005389", "v": 220288121.0}, {"e": "805001157", "i": "900123436", "v": 220000000.0}, {"e": "800088702", "i": "901108368", "v": 218703280.0}, {"e": "800251440", "i": "900958564", "v": 217144798.0}, {"e": "800251440", "i": "800218979", "v": 215512087.0}, {"e": "805001157", "i": "900342064", "v": 215000000.0}, {"e": "800130907", "i": "800067065", "v": 209014470.0}, {"e": "900604350", "i": "811016192", "v": 209004286.0}, {"e": "800088702", "i": "891380054", "v": 201884045.0}, {"e": "800251440", "i": "900314301", "v": 199213509.0}, {"e": "800088702", "i": "899999092", "v": 197579182.0}, {"e": "800130907", "i": "890212568", "v": 197202214.0}, {"e": "800130907", "i": "890480135", "v": 183587844.0}, {"e": "800251440", "i": "890706833", "v": 182914464.0}, {"e": "800251440", "i": "800197601", "v": 168840586.0}, {"e": "800130907", "i": "800254132", "v": 167864175.0}, {"e": "800130907", "i": "890900518", "v": 165372113.0}, {"e": "900226715", "i": "891580002", "v": 162519890.0}, {"e": "800130907", "i": "800215019", "v": 162125616.0}, {"e": "800251440", "i": "801000713", "v": 161846641.0}, {"e": "800130907", "i": "800194798", "v": 159816647.0}, {"e": "800251440", "i": "900959051", "v": 157077800.0}, {"e": "800251440", "i": "899999151", "v": 154209327.0}, {"e": "806008394", "i": "812004935", "v": 151338103.0}, {"e": "805001157", "i": "805011262", "v": 150000000.0}, {"e": "891856000", "i": "844002258", "v": 150000000.0}, {"e": "805001157", "i": "900034438", "v": 150000000.0}, {"e": "800251440", "i": "900066347", "v": 149429348.0}, {"e": "800251440", "i": "901002487", "v": 149088743.0}, {"e": "800130907", "i": "890801201", "v": 148997855.0}, {"e": "800251440", "i": "820001277", "v": 144288613.0}, {"e": "800251440", "i": "900210981", "v": 139265749.0}, {"e": "900226715", "i": "800231215", "v": 136687307.0}, {"e": "800088702", "i": "800065396", "v": 136663032.0}, {"e": "800251440", "i": "860013570", "v": 136210776.0}, {"e": "800251440", "i": "890300513", "v": 132365057.0}, {"e": "800130907", "i": "900783939", "v": 131769093.0}, {"e": "800088702", "i": "899999032", "v": 126062175.0}, {"e": "900226715", "i": "901085352", "v": 125912000.0}, {"e": "800251440", "i": "860035992", "v": 125643013.0}, {"e": "800088702", "i": "900421895", "v": 123948661.0}, {"e": "800130907", "i": "812005522", "v": 118650105.0}, {"e": "800088702", "i": "890801201", "v": 115408364.0}, {"e": "800251440", "i": "800185449", "v": 114160121.0}, {"e": "800088702", "i": "800185449", "v": 114091164.0}, {"e": "800251440", "i": "900578105", "v": 111941045.0}, {"e": "800251440", "i": "901108114", "v": 108535061.0}, {"e": "800251440", "i": "890985703", "v": 105279977.0}, {"e": "800251440", "i": "813011577", "v": 102746141.0}, {"e": "890303093", "i": "801000713", "v": 101331220.0}, {"e": "900604350", "i": "890985122", "v": 101213924.0}, {"e": "837000084", "i": "838000096", "v": 100000000.0}, {"e": "890303093", "i": "891480000", "v": 100000000.0}, {"e": "806008394", "i": "900971006", "v": 100000000.0}, {"e": "860066942", "i": "800200789", "v": 97989401.0}, {"e": "800251440", "i": "890985122", "v": 95866493.0}, {"e": "806008394", "i": "812005522", "v": 95630250.0}, {"e": "800088702", "i": "890205361", "v": 94162485.0}, {"e": "800251440", "i": "900034131", "v": 94097650.0}, {"e": "800088702", "i": "800223206", "v": 93172846.0}, {"e": "890500675", "i": "900112351", "v": 87711186.0}, {"e": "800251440", "i": "822006595", "v": 87417699.0}, {"e": "800251440", "i": "892399994", "v": 84615632.0}, {"e": "837000084", "i": "891580002", "v": 83560263.0}, {"e": "900226715", "i": "830007355", "v": 80955648.0}, {"e": "900604350", "i": "890904646", "v": 79748231.0}, {"e": "891856000", "i": "900386591", "v": 78000000.0}, {"e": "860066942", "i": "830007355", "v": 71639821.0}, {"e": "806008394", "i": "830510991", "v": 70757869.0}, {"e": "890500675", "i": "890212568", "v": 70713873.0}, {"e": "800088702", "i": "900098476", "v": 70173156.0}, {"e": "890500675", "i": "900580962", "v": 69905000.0}, {"e": "800251440", "i": "890307200", "v": 69608940.0}, {"e": "800088702", "i": "891300047", "v": 68231000.0}, {"e": "800251440", "i": "800012189", "v": 66824567.0}, {"e": "800088702", "i": "900959048", "v": 66465758.0}, {"e": "805001157", "i": "900298928", "v": 66170855.0}, {"e": "800251440", "i": "890102768", "v": 65622194.0}, {"e": "800251440", "i": "844002258", "v": 65286346.0}, {"e": "800088702", "i": "901352353", "v": 63027944.0}, {"e": "800088702", "i": "900006037", "v": 61838001.0}, {"e": "890500675", "i": "890501438", "v": 61791620.0}, {"e": "800088702", "i": "811042064", "v": 61521904.0}, {"e": "800251440", "i": "800065396", "v": 59260563.0}, {"e": "900604350", "i": "890982264", "v": 57252912.0}, {"e": "800088702", "i": "860037950", "v": 56923661.0}, {"e": "800251440", "i": "844004197", "v": 55411586.0}, {"e": "800251440", "i": "900006037", "v": 54043862.0}, {"e": "800088702", "i": "800197601", "v": 53615114.0}, {"e": "800088702", "i": "900971006", "v": 50919804.0}, {"e": "901543761", "i": "800183943", "v": 50000000.0}, {"e": "837000084", "i": "899999092", "v": 49704252.0}, {"e": "800251440", "i": "890501438", "v": 48848887.0}, {"e": "890303093", "i": "891300047", "v": 45967550.0}, {"e": "800251440", "i": "890303461", "v": 45671969.0}, {"e": "800088702", "i": "900958564", "v": 45273078.0}, {"e": "800251440", "i": "812007194", "v": 44386162.0}, {"e": "837000084", "i": "846000253", "v": 43548374.0}, {"e": "800251440", "i": "800231235", "v": 42952074.0}, {"e": "900226715", "i": "890982264", "v": 42086860.0}, {"e": "806008394", "i": "891080015", "v": 41073854.0}, {"e": "800088702", "i": "900342064", "v": 40383688.0}, {"e": "900604350", "i": "890939936", "v": 36323476.0}, {"e": "900226715", "i": "900421895", "v": 36010263.0}, {"e": "800251440", "i": "800037021", "v": 35950264.0}, {"e": "800130907", "i": "900223749", "v": 35498619.0}, {"e": "800088702", "i": "891800231", "v": 35452583.0}, {"e": "900226715", "i": "891380054", "v": 35439456.0}, {"e": "900226715", "i": "890902922", "v": 35067662.0}, {"e": "800130907", "i": "806015201", "v": 34926539.0}, {"e": "800251440", "i": "800183943", "v": 34466580.0}, {"e": "800251440", "i": "890901826", "v": 34231467.0}, {"e": "900226715", "i": "890501438", "v": 33344666.0}, {"e": "800088702", "i": "901085352", "v": 32336697.0}, {"e": "800088702", "i": "899999151", "v": 31771842.0}, {"e": "800251440", "i": "892115010", "v": 30957957.0}, {"e": "800088702", "i": "800179966", "v": 30208761.0}, {"e": "900604350", "i": "890900518", "v": 28489816.0}, {"e": "800088702", "i": "806015201", "v": 28142821.0}, {"e": "800088702", "i": "900959051", "v": 25123171.0}, {"e": "900604350", "i": "900390423", "v": 24415895.0}, {"e": "800088702", "i": "812007194", "v": 24185564.0}, {"e": "800088702", "i": "813001952", "v": 23748985.0}, {"e": "806008394", "i": "812003851", "v": 23409034.0}, {"e": "800251440", "i": "901085352", "v": 22882243.0}, {"e": "800251440", "i": "838000096", "v": 22515562.0}, {"e": "800251440", "i": "891079999", "v": 21820683.0}, {"e": "860066942", "i": "891855438", "v": 21710906.0}, {"e": "800088702", "i": "811016192", "v": 21173530.0}, {"e": "806008394", "i": "900123436", "v": 20019288.0}, {"e": "800251440", "i": "809003590", "v": 18311885.0}, {"e": "806008394", "i": "800183943", "v": 18212234.0}, {"e": "900226715", "i": "901532463", "v": 18089365.0}, {"e": "800251440", "i": "900386591", "v": 17413136.0}, {"e": "805001157", "i": "801001440", "v": 17235407.0}, {"e": "800251440", "i": "807004352", "v": 17027380.0}, {"e": "800088702", "i": "890680025", "v": 16524136.0}, {"e": "900604350", "i": "900005955", "v": 15915703.0}, {"e": "900226715", "i": "800065396", "v": 15799120.0}, {"e": "900604350", "i": "891800570", "v": 15323798.0}, {"e": "890303093", "i": "891380054", "v": 15232744.0}, {"e": "800251440", "i": "830510991", "v": 14651343.0}, {"e": "900604350", "i": "900421895", "v": 14099517.0}, {"e": "800088702", "i": "820005389", "v": 14097223.0}, {"e": "800251440", "i": "891800570", "v": 13363681.0}, {"e": "900226715", "i": "900098476", "v": 13298482.0}, {"e": "900226715", "i": "800038024", "v": 12649663.0}, {"e": "900604350", "i": "901532463", "v": 12643027.0}, {"e": "900604350", "i": "891079999", "v": 12543273.0}, {"e": "800088702", "i": "891180268", "v": 12512414.0}, {"e": "800088702", "i": "800231235", "v": 12315313.0}, {"e": "900226715", "i": "804008792", "v": 12210000.0}, {"e": "800251440", "i": "890701718", "v": 11408225.0}, {"e": "900604350", "i": "900261353", "v": 11043414.0}, {"e": "900226715", "i": "890985603", "v": 10761199.0}, {"e": "800251440", "i": "890480135", "v": 9538244.0}, {"e": "900604350", "i": "811042064", "v": 9526567.0}, {"e": "800088702", "i": "830007355", "v": 9252531.0}, {"e": "900604350", "i": "900038926", "v": 8704723.0}, {"e": "800088702", "i": "891855039", "v": 8512339.0}, {"e": "900226715", "i": "900986941", "v": 8429219.0}, {"e": "800251440", "i": "890807591", "v": 8423767.0}, {"e": "800088702", "i": "800107179", "v": 8269016.0}, {"e": "800088702", "i": "890904646", "v": 8134097.0}, {"e": "900604350", "i": "890902922", "v": 7887204.0}, {"e": "800088702", "i": "830102646", "v": 7546483.0}, {"e": "800251440", "i": "830007355", "v": 7536109.0}, {"e": "800251440", "i": "890900518", "v": 7316058.0}, {"e": "800088702", "i": "800067515", "v": 6977709.0}, {"e": "800088702", "i": "899999123", "v": 6422009.0}, {"e": "800251440", "i": "801001440", "v": 6253330.0}, {"e": "800251440", "i": "832001966", "v": 6104000.0}, {"e": "800251440", "i": "812003851", "v": 6023369.0}, {"e": "800251440", "i": "800227072", "v": 5931080.0}, {"e": "800251440", "i": "807008857", "v": 5910389.0}, {"e": "800088702", "i": "890480135", "v": 5860309.0}, {"e": "800251440", "i": "890301430", "v": 5686782.0}, {"e": "800251440", "i": "900475704", "v": 5660753.0}, {"e": "800251440", "i": "891080015", "v": 5631522.0}, {"e": "800088702", "i": "800012189", "v": 5560460.0}, {"e": "900226715", "i": "800183943", "v": 5442300.0}, {"e": "800251440", "i": "900177115", "v": 5440497.0}, {"e": "800251440", "i": "900213617", "v": 5406775.0}, {"e": "900604350", "i": "900177115", "v": 5357108.0}, {"e": "800251440", "i": "807004631", "v": 5241077.0}, {"e": "805001157", "i": "900959051", "v": 5219000.0}, {"e": "900226715", "i": "844004197", "v": 4946015.0}, {"e": "900604350", "i": "800107179", "v": 4879816.0}, {"e": "900604350", "i": "812005522", "v": 4876184.0}, {"e": "800251440", "i": "800014918", "v": 4678022.0}, {"e": "800088702", "i": "892399994", "v": 4443338.0}, {"e": "800251440", "i": "892300678", "v": 4377349.0}, {"e": "900226715", "i": "844002258", "v": 4339117.0}, {"e": "800088702", "i": "890985603", "v": 4296386.0}, {"e": "900226715", "i": "891856507", "v": 4231657.0}, {"e": "800130907", "i": "890303461", "v": 4205299.0}, {"e": "800251440", "i": "817001920", "v": 4096982.0}, {"e": "800251440", "i": "821000831", "v": 3949165.0}, {"e": "800088702", "i": "890706833", "v": 3827646.0}, {"e": "806008394", "i": "890901826", "v": 3814483.0}, {"e": "800251440", "i": "900345765", "v": 3790856.0}, {"e": "800088702", "i": "891855438", "v": 3577213.0}, {"e": "900604350", "i": "890901826", "v": 3549731.0}, {"e": "800088702", "i": "890801989", "v": 3419759.0}, {"e": "800088702", "i": "901201887", "v": 3413343.0}, {"e": "806008394", "i": "900532504", "v": 3401530.0}, {"e": "800251440", "i": "800204153", "v": 3341167.0}, {"e": "800088702", "i": "890801099", "v": 3313313.0}, {"e": "800088702", "i": "900236008", "v": 3134496.0}, {"e": "900226715", "i": "900210981", "v": 3035926.0}, {"e": "800088702", "i": "800254132", "v": 3032163.0}, {"e": "800088702", "i": "901108114", "v": 2937730.0}, {"e": "800088702", "i": "890701718", "v": 2792355.0}, {"e": "800088702", "i": "900386591", "v": 2656723.0}, {"e": "805001157", "i": "821000831", "v": 2524646.0}, {"e": "800088702", "i": "838000096", "v": 2430264.0}, {"e": "800088702", "i": "891800570", "v": 2378005.0}, {"e": "800251440", "i": "800038024", "v": 2347595.0}, {"e": "800088702", "i": "830510991", "v": 2276610.0}, {"e": "800251440", "i": "814006170", "v": 2276050.0}, {"e": "800251440", "i": "891856507", "v": 2244920.0}, {"e": "800088702", "i": "807004352", "v": 1964537.0}, {"e": "800251440", "i": "890801989", "v": 1871627.0}, {"e": "806008394", "i": "800200789", "v": 1808660.0}, {"e": "900226715", "i": "820005389", "v": 1779438.0}, {"e": "900226715", "i": "891855039", "v": 1724368.0}, {"e": "805001157", "i": "891580002", "v": 1669875.0}, {"e": "800251440", "i": "900005955", "v": 1665185.0}, {"e": "800088702", "i": "824001041", "v": 1567428.0}, {"e": "800251440", "i": "860015536", "v": 1449612.0}, {"e": "806008394", "i": "890501438", "v": 1435887.0}, {"e": "805001157", "i": "900971006", "v": 1300800.0}, {"e": "800251440", "i": "900826841", "v": 1285615.0}, {"e": "800251440", "i": "900470642", "v": 1200988.0}, {"e": "800088702", "i": "890982264", "v": 1113793.0}, {"e": "800251440", "i": "800048954", "v": 1104452.0}, {"e": "800251440", "i": "810000913", "v": 1085478.0}, {"e": "900226715", "i": "890102768", "v": 1069236.0}, {"e": "806008394", "i": "901700170", "v": 1061974.0}, {"e": "800088702", "i": "800215019", "v": 1044577.0}], "2 proceso de Enero 2026": [{"e": "800251440", "i": "860013570", "v": 31823590248.0}, {"e": "830003564", "i": "860007336", "v": 19000759153.0}, {"e": "830003564", "i": "860013570", "v": 9550000000.0}, {"e": "800088702", "i": "800067065", "v": 5489348468.0}, {"e": "800088702", "i": "800149026", "v": 4682048708.0}, {"e": "800088702", "i": "830007355", "v": 4619929732.0}, {"e": "830003564", "i": "900580962", "v": 4461000000.0}, {"e": "900156264", "i": "891200528", "v": 4307813673.0}, {"e": "800088702", "i": "805011262", "v": 3891345834.0}, {"e": "800251440", "i": "900123436", "v": 3859188596.0}, {"e": "900156264", "i": "901700170", "v": 3812079149.0}, {"e": "900156264", "i": "890985703", "v": 3696984301.0}, {"e": "900156264", "i": "900611961", "v": 3486508256.0}, {"e": "860066942", "i": "900219866", "v": 3437027183.0}, {"e": "900156264", "i": "900580962", "v": 3410897936.0}, {"e": "900156264", "i": "860013570", "v": 3351441199.0}, {"e": "900156264", "i": "800065396", "v": 3057469608.0}, {"e": "830003564", "i": "899999032", "v": 2949258820.0}, {"e": "800088702", "i": "890939936", "v": 2923728415.0}, {"e": "900156264", "i": "804008792", "v": 2879616456.0}, {"e": "800130907", "i": "800194798", "v": 2774266287.0}, {"e": "800088702", "i": "860007336", "v": 2730717625.0}, {"e": "800130907", "i": "800254132", "v": 2715272784.0}, {"e": "860066942", "i": "800065396", "v": 2605931191.0}, {"e": "860066942", "i": "900210981", "v": 2586725289.0}, {"e": "830003564", "i": "900900122", "v": 2565612273.0}, {"e": "800130907", "i": "890939936", "v": 2548360339.0}, {"e": "805001157", "i": "800048954", "v": 2500000000.0}, {"e": "805001157", "i": "890324177", "v": 2500000000.0}, {"e": "900156264", "i": "828002423", "v": 2385232388.0}, {"e": "800088702", "i": "890300513", "v": 2371422204.0}, {"e": "900156264", "i": "899999151", "v": 2350281969.0}, {"e": "900156264", "i": "900958564", "v": 2073855612.0}, {"e": "800251440", "i": "800065396", "v": 2025892082.0}, {"e": "800088702", "i": "890324177", "v": 1974686716.0}, {"e": "800088702", "i": "890307200", "v": 1907041131.0}, {"e": "900156264", "i": "890706833", "v": 1901013352.0}, {"e": "900156264", "i": "890701718", "v": 1787340171.0}, {"e": "900156264", "i": "891855039", "v": 1769783700.0}, {"e": "900156264", "i": "900971006", "v": 1763883793.0}, {"e": "800251440", "i": "828002423", "v": 1723715261.0}, {"e": "800130907", "i": "900580962", "v": 1719152998.0}, {"e": "800088702", "i": "890901826", "v": 1705182497.0}, {"e": "900156264", "i": "832001966", "v": 1703619350.0}, {"e": "860066942", "i": "860035992", "v": 1609592922.0}, {"e": "830003564", "i": "860035992", "v": 1594000000.0}, {"e": "800251440", "i": "900826841", "v": 1529010264.0}, {"e": "800088702", "i": "801000713", "v": 1507482812.0}, {"e": "900156264", "i": "900177115", "v": 1458739966.0}, {"e": "900156264", "i": "891800570", "v": 1373665132.0}, {"e": "800130907", "i": "900532504", "v": 1363028566.0}, {"e": "800088702", "i": "900390423", "v": 1326378131.0}, {"e": "900156264", "i": "900959051", "v": 1317799227.0}, {"e": "830003564", "i": "900718172", "v": 1300000000.0}, {"e": "900156264", "i": "800218979", "v": 1263964513.0}, {"e": "800088702", "i": "860035992", "v": 1247321764.0}, {"e": "860066942", "i": "900098476", "v": 1219452133.0}, {"e": "800088702", "i": "811042064", "v": 1217292666.0}, {"e": "800130907", "i": "800065396", "v": 1171070963.0}, {"e": "800088702", "i": "900611961", "v": 1169957611.0}, {"e": "800130907", "i": "899999017", "v": 1162810325.0}, {"e": "800088702", "i": "900261353", "v": 1156717640.0}, {"e": "900156264", "i": "860013704", "v": 1156595774.0}, {"e": "900156264", "i": "800000118", "v": 1133616775.0}, {"e": "900156264", "i": "900959048", "v": 1125198212.0}, {"e": "900156264", "i": "810000913", "v": 1086801423.0}, {"e": "900156264", "i": "890501438", "v": 1081050331.0}, {"e": "830003564", "i": "899999092", "v": 1052759334.0}, {"e": "800088702", "i": "900038926", "v": 1029479970.0}, {"e": "900156264", "i": "890982264", "v": 1014554243.0}, {"e": "800130907", "i": "900098476", "v": 1010598398.0}, {"e": "800088702", "i": "900421895", "v": 1004980963.0}, {"e": "890303093", "i": "800065396", "v": 1000000000.0}, {"e": "900226715", "i": "800231235", "v": 1000000000.0}, {"e": "805001157", "i": "890300513", "v": 1000000000.0}, {"e": "800130907", "i": "800179966", "v": 985311686.0}, {"e": "900156264", "i": "800014918", "v": 972972955.0}, {"e": "830003564", "i": "892000501", "v": 972000000.0}, {"e": "800130907", "i": "899999123", "v": 962737400.0}, {"e": "800088702", "i": "890900518", "v": 962060142.0}, {"e": "800088702", "i": "890807591", "v": 948849258.0}, {"e": "900156264", "i": "890680025", "v": 944404536.0}, {"e": "900156264", "i": "890801989", "v": 943150984.0}, {"e": "830003564", "i": "899999151", "v": 918000000.0}, {"e": "800130907", "i": "812007194", "v": 899457899.0}, {"e": "900156264", "i": "800231215", "v": 896474247.0}, {"e": "860066942", "i": "899999017", "v": 889623714.0}, {"e": "800088702", "i": "900578105", "v": 882291822.0}, {"e": "800130907", "i": "800067065", "v": 881039433.0}, {"e": "800088702", "i": "800185449", "v": 865277809.0}, {"e": "860066942", "i": "900219120", "v": 840455123.0}, {"e": "800251440", "i": "800254132", "v": 831659621.0}, {"e": "800130907", "i": "890902922", "v": 828188239.0}, {"e": "900604350", "i": "900261353", "v": 798054146.0}, {"e": "800251440", "i": "892300678", "v": 796879537.0}, {"e": "800130907", "i": "900971006", "v": 743454767.0}, {"e": "800130907", "i": "900783939", "v": 723068519.0}, {"e": "900156264", "i": "860040094", "v": 715370621.0}, {"e": "800130907", "i": "890706833", "v": 713728915.0}, {"e": "800088702", "i": "890212568", "v": 712332811.0}, {"e": "800130907", "i": "900204617", "v": 703404964.0}, {"e": "800251440", "i": "901270863", "v": 700292933.0}, {"e": "800130907", "i": "900213617", "v": 684767215.0}, {"e": "830003564", "i": "900532504", "v": 677000000.0}, {"e": "860066942", "i": "860015536", "v": 672424274.0}, {"e": "800130907", "i": "800048954", "v": 648850365.0}, {"e": "900298372", "i": "899999092", "v": 639043040.0}, {"e": "830003564", "i": "900171211", "v": 634645196.0}, {"e": "830003564", "i": "900006037", "v": 630000000.0}, {"e": "805001157", "i": "891380054", "v": 600645443.0}, {"e": "900226715", "i": "900532504", "v": 600000000.0}, {"e": "900156264", "i": "900314301", "v": 576890356.0}, {"e": "900156264", "i": "846000253", "v": 565539949.0}, {"e": "900298372", "i": "816001182", "v": 545576859.0}, {"e": "800130907", "i": "900959051", "v": 540787004.0}, {"e": "860066942", "i": "900293923", "v": 533636185.0}, {"e": "900156264", "i": "900057926", "v": 532752635.0}, {"e": "800130907", "i": "900718172", "v": 524207290.0}, {"e": "800088702", "i": "860015536", "v": 515621285.0}, {"e": "800088702", "i": "800194798", "v": 506877466.0}, {"e": "800130907", "i": "890901826", "v": 500295778.0}, {"e": "900226715", "i": "800179966", "v": 500000000.0}, {"e": "900226715", "i": "891800231", "v": 500000000.0}, {"e": "890303093", "i": "900034438", "v": 500000000.0}, {"e": "900156264", "i": "820005389", "v": 495988072.0}, {"e": "800130907", "i": "899999032", "v": 487144591.0}, {"e": "800130907", "i": "800231235", "v": 483799691.0}, {"e": "900156264", "i": "900066347", "v": 473374447.0}, {"e": "800130907", "i": "890102768", "v": 473011043.0}, {"e": "800130907", "i": "900013939", "v": 472495813.0}, {"e": "800130907", "i": "900959048", "v": 459246850.0}, {"e": "830003564", "i": "820005389", "v": 448695168.0}, {"e": "900156264", "i": "901108114", "v": 435311702.0}, {"e": "800088702", "i": "800065396", "v": 435056847.0}, {"e": "900156264", "i": "892399994", "v": 433734514.0}, {"e": "900156264", "i": "890205361", "v": 433013284.0}, {"e": "860066942", "i": "899999123", "v": 432822432.0}, {"e": "800088702", "i": "800231235", "v": 428371721.0}, {"e": "900156264", "i": "901440000", "v": 418406409.0}, {"e": "800130907", "i": "899999092", "v": 414898129.0}, {"e": "830003564", "i": "800254132", "v": 410000000.0}, {"e": "800130907", "i": "800107179", "v": 406991523.0}, {"e": "800130907", "i": "890300513", "v": 400808718.0}, {"e": "900604350", "i": "890900518", "v": 400002079.0}, {"e": "800130907", "i": "899999151", "v": 397630693.0}, {"e": "806008394", "i": "816001182", "v": 392299743.0}, {"e": "900156264", "i": "829001256", "v": 385477655.0}, {"e": "860066942", "i": "891800231", "v": 383306800.0}, {"e": "800088702", "i": "890902922", "v": 381403914.0}, {"e": "806008394", "i": "900219120", "v": 374696235.0}, {"e": "830003564", "i": "828002423", "v": 373570003.0}, {"e": "800130907", "i": "860035992", "v": 373411498.0}, {"e": "800130907", "i": "891855438", "v": 372207745.0}, {"e": "800130907", "i": "890801099", "v": 356975476.0}, {"e": "800130907", "i": "824001041", "v": 356216622.0}, {"e": "830003564", "i": "890303461", "v": 355000000.0}, {"e": "800088702", "i": "899999032", "v": 346041090.0}, {"e": "860066942", "i": "901002487", "v": 345606479.0}, {"e": "800088702", "i": "899999092", "v": 342569405.0}, {"e": "800130907", "i": "860007336", "v": 342456543.0}, {"e": "800088702", "i": "890985703", "v": 340640940.0}, {"e": "860066942", "i": "899999151", "v": 337788440.0}, {"e": "900156264", "i": "891079999", "v": 330527046.0}, {"e": "900156264", "i": "892115010", "v": 323985121.0}, {"e": "800130907", "i": "820001277", "v": 317444639.0}, {"e": "800088702", "i": "890801201", "v": 306792562.0}, {"e": "890303093", "i": "900532504", "v": 301455579.0}, {"e": "890303093", "i": "805011262", "v": 300801699.0}, {"e": "900604350", "i": "890985703", "v": 300241971.0}, {"e": "800130907", "i": "805011262", "v": 293972681.0}, {"e": "900156264", "i": "844004197", "v": 291796615.0}, {"e": "901543761", "i": "800194798", "v": 291736431.0}, {"e": "800251440", "i": "900342064", "v": 287018455.0}, {"e": "800130907", "i": "900958564", "v": 281978450.0}, {"e": "900156264", "i": "838000096", "v": 280994572.0}, {"e": "800130907", "i": "901085352", "v": 280104202.0}, {"e": "800130907", "i": "890205361", "v": 278517088.0}, {"e": "800130907", "i": "891080015", "v": 277453122.0}, {"e": "800088702", "i": "900210981", "v": 276410602.0}, {"e": "800088702", "i": "891380054", "v": 275635291.0}, {"e": "900156264", "i": "812003851", "v": 275287004.0}, {"e": "800130907", "i": "891800231", "v": 271791546.0}, {"e": "900156264", "i": "800250634", "v": 267754702.0}, {"e": "800088702", "i": "890102768", "v": 265128603.0}, {"e": "860066942", "i": "860037950", "v": 260352463.0}, {"e": "800088702", "i": "891480000", "v": 258438647.0}, {"e": "900226715", "i": "892399994", "v": 250000000.0}, {"e": "900298372", "i": "900959048", "v": 240331784.0}, {"e": "800251440", "i": "811016192", "v": 240073058.0}, {"e": "830003564", "i": "830007355", "v": 236007231.0}, {"e": "806008394", "i": "812007194", "v": 233463733.0}, {"e": "860066942", "i": "899999092", "v": 228084627.0}, {"e": "800251440", "i": "891855438", "v": 224196249.0}, {"e": "860066942", "i": "813001952", "v": 222938550.0}, {"e": "805001157", "i": "890303461", "v": 221099992.0}, {"e": "830003564", "i": "901532463", "v": 216266660.0}, {"e": "805001157", "i": "900168679", "v": 215202708.0}, {"e": "800130907", "i": "800000118", "v": 210926991.0}, {"e": "800251440", "i": "891180268", "v": 206490938.0}, {"e": "900298372", "i": "900971006", "v": 206368130.0}, {"e": "800130907", "i": "900342064", "v": 200345351.0}, {"e": "890303093", "i": "890303461", "v": 200014296.0}, {"e": "900226715", "i": "830007355", "v": 200000000.0}, {"e": "900156264", "i": "822006595", "v": 197104982.0}, {"e": "800088702", "i": "899999123", "v": 196881657.0}, {"e": "800130907", "i": "892000501", "v": 193196227.0}, {"e": "800088702", "i": "899999151", "v": 192558301.0}, {"e": "800130907", "i": "890985703", "v": 192452856.0}, {"e": "900156264", "i": "800204153", "v": 188271696.0}, {"e": "800130907", "i": "890801201", "v": 183673694.0}, {"e": "800251440", "i": "891855039", "v": 183610346.0}, {"e": "800130907", "i": "890900518", "v": 182703524.0}, {"e": "800088702", "i": "890904646", "v": 179807668.0}, {"e": "800130907", "i": "900171211", "v": 173537652.0}, {"e": "890303093", "i": "860040094", "v": 173393584.0}, {"e": "830003564", "i": "890680025", "v": 173275849.0}, {"e": "900156264", "i": "809003590", "v": 171931059.0}, {"e": "900298372", "i": "822006595", "v": 161575602.0}, {"e": "800130907", "i": "800200789", "v": 155850661.0}, {"e": "800130907", "i": "800037021", "v": 155047541.0}, {"e": "860066942", "i": "800227072", "v": 151295872.0}, {"e": "900156264", "i": "816001182", "v": 149588259.0}, {"e": "800130907", "i": "900123436", "v": 149257889.0}, {"e": "860066942", "i": "900971006", "v": 147723361.0}, {"e": "860066942", "i": "900900122", "v": 143916600.0}, {"e": "800130907", "i": "891855039", "v": 143552212.0}, {"e": "830003564", "i": "891200528", "v": 142389257.0}, {"e": "800088702", "i": "860037950", "v": 141208233.0}, {"e": "800088702", "i": "800197601", "v": 140983425.0}, {"e": "805001157", "i": "900034438", "v": 140000000.0}, {"e": "805001157", "i": "900123436", "v": 140000000.0}, {"e": "805001157", "i": "800231235", "v": 138775175.0}, {"e": "800088702", "i": "900098476", "v": 138677232.0}, {"e": "837000084", "i": "891200528", "v": 138326966.0}, {"e": "800130907", "i": "800185449", "v": 135244532.0}, {"e": "900156264", "i": "900038926", "v": 134853219.0}, {"e": "860066942", "i": "901532463", "v": 133084837.0}, {"e": "800088702", "i": "900971006", "v": 129665398.0}, {"e": "800088702", "i": "900236008", "v": 125334566.0}, {"e": "860066942", "i": "890680025", "v": 124423452.0}, {"e": "800088702", "i": "800000118", "v": 119277343.0}, {"e": "860066942", "i": "900578105", "v": 119223247.0}, {"e": "900156264", "i": "800107179", "v": 119218388.0}, {"e": "800130907", "i": "891180268", "v": 118957580.0}, {"e": "800088702", "i": "812005522", "v": 117635815.0}, {"e": "900298372", "i": "900856982", "v": 116029334.0}, {"e": "830003564", "i": "890706833", "v": 115000000.0}, {"e": "800251440", "i": "890706833", "v": 112432278.0}, {"e": "900156264", "i": "800200789", "v": 111465495.0}, {"e": "890500675", "i": "800014918", "v": 110280718.0}, {"e": "800130907", "i": "890701718", "v": 109674841.0}, {"e": "860066942", "i": "900718172", "v": 108636305.0}, {"e": "800130907", "i": "800215019", "v": 105569250.0}, {"e": "900604350", "i": "890985122", "v": 104744504.0}, {"e": "891856000", "i": "900386591", "v": 101299668.0}, {"e": "800130907", "i": "809003590", "v": 101199618.0}, {"e": "837000084", "i": "891200209", "v": 100000000.0}, {"e": "837000084", "i": "891580002", "v": 100000000.0}, {"e": "800251440", "i": "901440000", "v": 97819642.0}, {"e": "800088702", "i": "890982264", "v": 96743966.0}, {"e": "800130907", "i": "892399994", "v": 95036605.0}, {"e": "800130907", "i": "890301430", "v": 92650470.0}, {"e": "800251440", "i": "891180134", "v": 90037981.0}, {"e": "800251440", "i": "900971006", "v": 89749176.0}, {"e": "890303093", "i": "900826841", "v": 88279434.0}, {"e": "800088702", "i": "900959048", "v": 88254960.0}, {"e": "800130907", "i": "900785142", "v": 86078823.0}, {"e": "800088702", "i": "890205361", "v": 84846211.0}, {"e": "860066942", "i": "900958564", "v": 82658616.0}, {"e": "800088702", "i": "891800231", "v": 82006829.0}, {"e": "830003564", "i": "900958564", "v": 80979700.0}, {"e": "800130907", "i": "900390423", "v": 80948471.0}, {"e": "900604350", "i": "811016192", "v": 80080194.0}, {"e": "900226715", "i": "901108114", "v": 80000000.0}, {"e": "800130907", "i": "890212568", "v": 79816223.0}, {"e": "830003564", "i": "891855438", "v": 79520066.0}, {"e": "900156264", "i": "891080015", "v": 79142960.0}, {"e": "800088702", "i": "901201887", "v": 77940371.0}, {"e": "900298372", "i": "899999123", "v": 76237337.0}, {"e": "800130907", "i": "891480000", "v": 73670485.0}, {"e": "800130907", "i": "890680025", "v": 72571258.0}, {"e": "800130907", "i": "900900122", "v": 71575631.0}, {"e": "800251440", "i": "860002566", "v": 70702687.0}, {"e": "900226715", "i": "830510991", "v": 70000000.0}, {"e": "800130907", "i": "900986941", "v": 69564698.0}, {"e": "800130907", "i": "900470642", "v": 69478285.0}, {"e": "800251440", "i": "891580002", "v": 69084355.0}, {"e": "800130907", "i": "822006595", "v": 65293394.0}, {"e": "900298372", "i": "899999017", "v": 64248165.0}, {"e": "800088702", "i": "901532463", "v": 63476870.0}, {"e": "860066942", "i": "900959048", "v": 63154063.0}, {"e": "800130907", "i": "812005522", "v": 62197527.0}, {"e": "900156264", "i": "900345765", "v": 60792212.0}, {"e": "800088702", "i": "800123572", "v": 59913866.0}, {"e": "830003564", "i": "900274663", "v": 56000000.0}, {"e": "800251440", "i": "800000118", "v": 54473055.0}, {"e": "800088702", "i": "901108368", "v": 54232491.0}, {"e": "800251440", "i": "890680025", "v": 54188925.0}, {"e": "830003564", "i": "891855039", "v": 53324210.0}, {"e": "860066942", "i": "890900518", "v": 53074946.0}, {"e": "860066942", "i": "820001277", "v": 52447673.0}, {"e": "860066942", "i": "891180268", "v": 51153640.0}, {"e": "900226715", "i": "800227072", "v": 50000000.0}, {"e": "800130907", "i": "890801989", "v": 49846886.0}, {"e": "800088702", "i": "890301430", "v": 48964536.0}, {"e": "800251440", "i": "891079999", "v": 48778498.0}, {"e": "800130907", "i": "900386591", "v": 47510669.0}, {"e": "800130907", "i": "810000913", "v": 47455174.0}, {"e": "800088702", "i": "901352353", "v": 47052712.0}, {"e": "800088702", "i": "801001440", "v": 46643361.0}, {"e": "800088702", "i": "824001041", "v": 44722681.0}, {"e": "800251440", "i": "899999151", "v": 44351163.0}, {"e": "890500675", "i": "900470642", "v": 44168541.0}, {"e": "890500675", "i": "800012189", "v": 43885868.0}, {"e": "830003564", "i": "860015536", "v": 43757780.0}, {"e": "900156264", "i": "900155231", "v": 43145175.0}, {"e": "800088702", "i": "811016192", "v": 40219824.0}, {"e": "800130907", "i": "800014918", "v": 39529259.0}, {"e": "860066942", "i": "901100223", "v": 39464921.0}, {"e": "800088702", "i": "891855039", "v": 35911468.0}, {"e": "860066942", "i": "820005389", "v": 35550515.0}, {"e": "800251440", "i": "900959051", "v": 35333078.0}, {"e": "800251440", "i": "838000096", "v": 33786998.0}, {"e": "806008394", "i": "812005522", "v": 33785303.0}, {"e": "800130907", "i": "901532463", "v": 33777962.0}, {"e": "900156264", "i": "891856507", "v": 33350549.0}, {"e": "800251440", "i": "891200528", "v": 32613652.0}, {"e": "800130907", "i": "811042064", "v": 31575916.0}, {"e": "800130907", "i": "900066347", "v": 31434145.0}, {"e": "800130907", "i": "891079999", "v": 30993756.0}, {"e": "830003564", "i": "813011577", "v": 30296150.0}, {"e": "805001157", "i": "800000118", "v": 30258206.0}, {"e": "900226715", "i": "801000713", "v": 30000000.0}, {"e": "800088702", "i": "900958564", "v": 29758040.0}, {"e": "800088702", "i": "890480135", "v": 29512853.0}, {"e": "800251440", "i": "892000501", "v": 28854284.0}, {"e": "800088702", "i": "806015201", "v": 28712082.0}, {"e": "900156264", "i": "900034131", "v": 28189862.0}, {"e": "860066942", "i": "891855847", "v": 28032718.0}, {"e": "800130907", "i": "892300708", "v": 27952735.0}, {"e": "800088702", "i": "900298928", "v": 27737391.0}, {"e": "800130907", "i": "800204153", "v": 27091435.0}, {"e": "860066942", "i": "890701718", "v": 26799805.0}, {"e": "800130907", "i": "900274663", "v": 26675400.0}, {"e": "800130907", "i": "812004935", "v": 26652311.0}, {"e": "800130907", "i": "900345765", "v": 26494028.0}, {"e": "800251440", "i": "900900122", "v": 26330516.0}, {"e": "800130907", "i": "800183943", "v": 26254385.0}, {"e": "800088702", "i": "800183943", "v": 26233472.0}, {"e": "805001157", "i": "800037021", "v": 25580800.0}, {"e": "800130907", "i": "800038024", "v": 24846998.0}, {"e": "800251440", "i": "899999032", "v": 24757756.0}, {"e": "800130907", "i": "891380054", "v": 24711522.0}, {"e": "800088702", "i": "900219120", "v": 24178560.0}, {"e": "800130907", "i": "813001952", "v": 24171669.0}, {"e": "800088702", "i": "900959051", "v": 22881031.0}, {"e": "806008394", "i": "892399994", "v": 22596359.0}, {"e": "800088702", "i": "800204153", "v": 21816545.0}, {"e": "900156264", "i": "892300678", "v": 21593140.0}, {"e": "800130907", "i": "890807591", "v": 21509029.0}, {"e": "800251440", "i": "800231235", "v": 20818797.0}, {"e": "800130907", "i": "813011577", "v": 20406461.0}, {"e": "860066942", "i": "890939936", "v": 20277289.0}, {"e": "800130907", "i": "860015536", "v": 20091999.0}, {"e": "860066942", "i": "891855438", "v": 19886854.0}, {"e": "800130907", "i": "901352353", "v": 19151669.0}, {"e": "800251440", "i": "890807591", "v": 19082270.0}, {"e": "800088702", "i": "890801989", "v": 18345572.0}, {"e": "830003564", "i": "901352353", "v": 18232658.0}, {"e": "800088702", "i": "800012189", "v": 18191709.0}, {"e": "860066942", "i": "800231215", "v": 17686966.0}, {"e": "800130907", "i": "860037950", "v": 17433102.0}, {"e": "800088702", "i": "901085352", "v": 17374658.0}, {"e": "800088702", "i": "900900122", "v": 17078091.0}, {"e": "800088702", "i": "891800570", "v": 16992952.0}, {"e": "800130907", "i": "900236008", "v": 16987688.0}, {"e": "860066942", "i": "891855029", "v": 16819482.0}, {"e": "860066942", "i": "813011577", "v": 16803111.0}, {"e": "805001157", "i": "890985703", "v": 16415526.0}, {"e": "800088702", "i": "820001277", "v": 15713597.0}, {"e": "900604350", "i": "812004935", "v": 15613974.0}, {"e": "800251440", "i": "800218979", "v": 14992340.0}, {"e": "800088702", "i": "891180268", "v": 14970713.0}, {"e": "800088702", "i": "800200789", "v": 14760662.0}, {"e": "800251440", "i": "891800231", "v": 13292445.0}, {"e": "830003564", "i": "801000713", "v": 13110133.0}, {"e": "860066942", "i": "890324177", "v": 13061442.0}, {"e": "830003564", "i": "891856507", "v": 13043152.0}, {"e": "800130907", "i": "901201887", "v": 12388243.0}, {"e": "800251440", "i": "900006037", "v": 12322048.0}, {"e": "890500675", "i": "890212568", "v": 12277138.0}, {"e": "800088702", "i": "800038024", "v": 12242375.0}, {"e": "800251440", "i": "900959048", "v": 12190308.0}, {"e": "800130907", "i": "892115010", "v": 12043709.0}, {"e": "860066942", "i": "892000501", "v": 11741393.0}, {"e": "860066942", "i": "824001041", "v": 11735179.0}, {"e": "860066942", "i": "800037021", "v": 11340630.0}, {"e": "800088702", "i": "800254132", "v": 11337516.0}, {"e": "830003564", "i": "900066347", "v": 11244073.0}, {"e": "830003564", "i": "891180268", "v": 11187578.0}, {"e": "800088702", "i": "890801099", "v": 11150646.0}, {"e": "800130907", "i": "900210981", "v": 10989968.0}, {"e": "830003564", "i": "800000118", "v": 10851921.0}, {"e": "800251440", "i": "890701718", "v": 10789639.0}, {"e": "800130907", "i": "890501438", "v": 10675731.0}, {"e": "800088702", "i": "892300708", "v": 10372485.0}, {"e": "800130907", "i": "900772387", "v": 10246687.0}, {"e": "830003564", "i": "800067515", "v": 9857208.0}, {"e": "800130907", "i": "900578105", "v": 9743909.0}, {"e": "800251440", "i": "900958564", "v": 9409072.0}, {"e": "800130907", "i": "844004197", "v": 9387317.0}, {"e": "860066942", "i": "800185449", "v": 9073649.0}, {"e": "800251440", "i": "890501438", "v": 9034353.0}, {"e": "800130907", "i": "828002423", "v": 8623659.0}, {"e": "860066942", "i": "891480000", "v": 8047943.0}, {"e": "900226715", "i": "800149026", "v": 8000000.0}, {"e": "800130907", "i": "890985122", "v": 7992206.0}, {"e": "860066942", "i": "802020334", "v": 7974260.0}, {"e": "800130907", "i": "800218979", "v": 7735191.0}, {"e": "860066942", "i": "901153925", "v": 7650510.0}, {"e": "800130907", "i": "900034131", "v": 7500683.0}, {"e": "800088702", "i": "900005955", "v": 7493461.0}, {"e": "860066942", "i": "891855039", "v": 7453000.0}, {"e": "800130907", "i": "801001440", "v": 7032073.0}, {"e": "800130907", "i": "829001256", "v": 6911793.0}, {"e": "800088702", "i": "891300047", "v": 6700306.0}, {"e": "800088702", "i": "813001952", "v": 6686753.0}, {"e": "860066942", "i": "900532504", "v": 6685534.0}, {"e": "800130907", "i": "891800570", "v": 6674195.0}, {"e": "800088702", "i": "900532504", "v": 6468000.0}, {"e": "806008394", "i": "891079999", "v": 6358563.0}, {"e": "800088702", "i": "800179966", "v": 6312795.0}, {"e": "800130907", "i": "890480135", "v": 6279473.0}, {"e": "800088702", "i": "890985603", "v": 6154859.0}, {"e": "805001157", "i": "840001036", "v": 6094605.0}, {"e": "806008394", "i": "891080015", "v": 6016826.0}, {"e": "860066942", "i": "832001966", "v": 5799910.0}, {"e": "800088702", "i": "900123436", "v": 5797228.0}, {"e": "800088702", "i": "800014918", "v": 5610749.0}, {"e": "800130907", "i": "900215983", "v": 5596941.0}, {"e": "800130907", "i": "891855029", "v": 5497705.0}, {"e": "800088702", "i": "900006037", "v": 5487257.0}, {"e": "800088702", "i": "892399994", "v": 5388485.0}, {"e": "800251440", "i": "820005389", "v": 5356291.0}, {"e": "800251440", "i": "900066347", "v": 5260874.0}, {"e": "860066942", "i": "810000913", "v": 5046363.0}, {"e": "900226715", "i": "890701718", "v": 5000000.0}, {"e": "860066942", "i": "890300513", "v": 4969700.0}, {"e": "800130907", "i": "890985603", "v": 4919700.0}, {"e": "800088702", "i": "800067515", "v": 4861663.0}, {"e": "800130907", "i": "820005389", "v": 4830967.0}, {"e": "800088702", "i": "890303461", "v": 4764419.0}, {"e": "800088702", "i": "800218979", "v": 4723460.0}, {"e": "800130907", "i": "891856507", "v": 4594795.0}, {"e": "900226715", "i": "800037021", "v": 4500000.0}, {"e": "800088702", "i": "890701718", "v": 3991771.0}, {"e": "900604350", "i": "860015536", "v": 3953191.0}, {"e": "800088702", "i": "891855438", "v": 3853495.0}, {"e": "900604350", "i": "810000913", "v": 3771984.0}, {"e": "800130907", "i": "811016192", "v": 3582715.0}, {"e": "800130907", "i": "891180134", "v": 3492453.0}, {"e": "805001157", "i": "890904646", "v": 3402871.0}, {"e": "800088702", "i": "812004935", "v": 3360682.0}, {"e": "900226715", "i": "809003590", "v": 3000000.0}, {"e": "800088702", "i": "891180134", "v": 2769203.0}, {"e": "800130907", "i": "901108114", "v": 2741357.0}, {"e": "800130907", "i": "838000096", "v": 2651247.0}, {"e": "800088702", "i": "891855029", "v": 2597571.0}, {"e": "900604350", "i": "890801989", "v": 2589372.0}, {"e": "800251440", "i": "890801989", "v": 2535531.0}, {"e": "800088702", "i": "892000501", "v": 2131045.0}, {"e": "800251440", "i": "809003590", "v": 2116930.0}, {"e": "900604350", "i": "800000118", "v": 2095113.0}, {"e": "800130907", "i": "800231215", "v": 2052603.0}, {"e": "800088702", "i": "804002599", "v": 2030400.0}, {"e": "800130907", "i": "891580002", "v": 1966416.0}, {"e": "800088702", "i": "901700170", "v": 1868515.0}, {"e": "800088702", "i": "890706833", "v": 1838345.0}, {"e": "800088702", "i": "800048954", "v": 1815554.0}, {"e": "800088702", "i": "800107179", "v": 1680675.0}, {"e": "860066942", "i": "890102768", "v": 1409947.0}, {"e": "800130907", "i": "900006037", "v": 1380557.0}, {"e": "800130907", "i": "860013570", "v": 1288986.0}, {"e": "800088702", "i": "890501438", "v": 1219082.0}, {"e": "800251440", "i": "890303461", "v": 1192881.0}, {"e": "860066942", "i": "800200789", "v": 1184095.0}, {"e": "800088702", "i": "844004197", "v": 1181247.0}, {"e": "900226715", "i": "838000096", "v": 1170941.0}, {"e": "800088702", "i": "829001256", "v": 1154286.0}], "3_proceso_de_Enero_2026": [{"e": "800088702", "i": "860007336", "v": 14152575911.0}, {"e": "800130907", "i": "800149026", "v": 6201650546.0}, {"e": "860066942", "i": "805011262", "v": 5372084698.0}, {"e": "860066942", "i": "900219866", "v": 5249607631.0}, {"e": "800088702", "i": "890939936", "v": 3799575778.0}, {"e": "800088702", "i": "890901826", "v": 3057565143.0}, {"e": "800130907", "i": "800067065", "v": 2899302270.0}, {"e": "800088702", "i": "800149026", "v": 2794023748.0}, {"e": "860066942", "i": "900210981", "v": 2461799527.0}, {"e": "800088702", "i": "890300513", "v": 2121773442.0}, {"e": "805001157", "i": "800048954", "v": 1900000000.0}, {"e": "800088702", "i": "900123436", "v": 1748392818.0}, {"e": "860066942", "i": "860035992", "v": 1738450612.0}, {"e": "800130907", "i": "890901826", "v": 1640874447.0}, {"e": "860066942", "i": "860015536", "v": 1613809805.0}, {"e": "800088702", "i": "800067065", "v": 1600673271.0}, {"e": "800130907", "i": "899999123", "v": 1589099766.0}, {"e": "800130907", "i": "899999017", "v": 1577475532.0}, {"e": "800088702", "i": "890807591", "v": 1527364376.0}, {"e": "800130907", "i": "824001041", "v": 1443443039.0}, {"e": "800130907", "i": "890300513", "v": 1387495072.0}, {"e": "800088702", "i": "890324177", "v": 1360935843.0}, {"e": "800130907", "i": "900098476", "v": 1297213642.0}, {"e": "800130907", "i": "830510991", "v": 1255074913.0}, {"e": "800130907", "i": "900783939", "v": 1207196905.0}, {"e": "860066942", "i": "800065396", "v": 1205051723.0}, {"e": "805001157", "i": "891300047", "v": 1200000000.0}, {"e": "800088702", "i": "900390423", "v": 1171301815.0}, {"e": "800088702", "i": "900219866", "v": 1151349178.0}, {"e": "805001157", "i": "900168679", "v": 1112829348.0}, {"e": "860066942", "i": "816001182", "v": 1098609493.0}, {"e": "800130907", "i": "890212568", "v": 1079014578.0}, {"e": "805001157", "i": "890300513", "v": 1000000000.0}, {"e": "800130907", "i": "890900518", "v": 947195283.0}, {"e": "860066942", "i": "899999032", "v": 937743356.0}, {"e": "800088702", "i": "900261353", "v": 816507519.0}, {"e": "805001157", "i": "890324177", "v": 775000000.0}, {"e": "800130907", "i": "800185449", "v": 765968965.0}, {"e": "800130907", "i": "900342064", "v": 716365740.0}, {"e": "800088702", "i": "860035992", "v": 715679069.0}, {"e": "800088702", "i": "900219120", "v": 700187727.0}, {"e": "800088702", "i": "890307200", "v": 699845287.0}, {"e": "800130907", "i": "800065396", "v": 668602437.0}, {"e": "800088702", "i": "890212568", "v": 654291155.0}, {"e": "805001157", "i": "890301430", "v": 640000000.0}, {"e": "800130907", "i": "901085352", "v": 607364706.0}, {"e": "800088702", "i": "801000713", "v": 591719534.0}, {"e": "800088702", "i": "890985703", "v": 583602332.0}, {"e": "806008394", "i": "816001182", "v": 552347953.0}, {"e": "800088702", "i": "900578105", "v": 544819293.0}, {"e": "800088702", "i": "811042064", "v": 526971008.0}, {"e": "860066942", "i": "900219120", "v": 524619353.0}, {"e": "800130907", "i": "800254132", "v": 498506115.0}, {"e": "800088702", "i": "890900518", "v": 478069434.0}, {"e": "860066942", "i": "860037950", "v": 477373635.0}, {"e": "800088702", "i": "890902922", "v": 443348833.0}, {"e": "800130907", "i": "899999151", "v": 426458799.0}, {"e": "860066942", "i": "900578105", "v": 408592049.0}, {"e": "800130907", "i": "890480135", "v": 406666704.0}, {"e": "800088702", "i": "900210981", "v": 392480571.0}, {"e": "800130907", "i": "812007194", "v": 379928269.0}, {"e": "860066942", "i": "900098476", "v": 375633755.0}, {"e": "800088702", "i": "890904646", "v": 352469932.0}, {"e": "800130907", "i": "891800231", "v": 351877416.0}, {"e": "860066942", "i": "899999017", "v": 346454409.0}, {"e": "800130907", "i": "812005522", "v": 334898181.0}, {"e": "800130907", "i": "890939936", "v": 333165644.0}, {"e": "900298372", "i": "900959051", "v": 327286779.0}, {"e": "800130907", "i": "900971006", "v": 305245007.0}, {"e": "800130907", "i": "900718172", "v": 289167492.0}, {"e": "800130907", "i": "900213617", "v": 283051946.0}, {"e": "800130907", "i": "890706833", "v": 281982984.0}, {"e": "800088702", "i": "890102768", "v": 270825387.0}, {"e": "805001157", "i": "901108368", "v": 250000000.0}, {"e": "800130907", "i": "890985703", "v": 242355911.0}, {"e": "800130907", "i": "892000501", "v": 239652152.0}, {"e": "800088702", "i": "890301430", "v": 239213599.0}, {"e": "900298372", "i": "900959048", "v": 237246475.0}, {"e": "800130907", "i": "890102768", "v": 236971161.0}, {"e": "800130907", "i": "901532463", "v": 235647378.0}, {"e": "800130907", "i": "900958564", "v": 233251739.0}, {"e": "800130907", "i": "860007336", "v": 231619621.0}, {"e": "900298372", "i": "900971006", "v": 226978766.0}, {"e": "800088702", "i": "900038926", "v": 215109394.0}, {"e": "806008394", "i": "890480135", "v": 206000000.0}, {"e": "860066942", "i": "900293923", "v": 201195820.0}, {"e": "806008394", "i": "890102768", "v": 200000000.0}, {"e": "806008394", "i": "900223749", "v": 200000000.0}, {"e": "800130907", "i": "820001277", "v": 198120248.0}, {"e": "900298372", "i": "900958564", "v": 196840723.0}, {"e": "860066942", "i": "890680025", "v": 195390550.0}, {"e": "800088702", "i": "800000118", "v": 192550868.0}, {"e": "800130907", "i": "899999032", "v": 182273397.0}, {"e": "800130907", "i": "800215019", "v": 175566776.0}, {"e": "800130907", "i": "900470642", "v": 174080013.0}, {"e": "860066942", "i": "801000713", "v": 168847191.0}, {"e": "900298372", "i": "822006595", "v": 168156145.0}, {"e": "800130907", "i": "811042064", "v": 166294584.0}, {"e": "900298372", "i": "816001182", "v": 164697491.0}, {"e": "800088702", "i": "900421895", "v": 162478584.0}, {"e": "800130907", "i": "813011577", "v": 155264896.0}, {"e": "800130907", "i": "899999092", "v": 154312852.0}, {"e": "806008394", "i": "812005522", "v": 150283768.0}, {"e": "800088702", "i": "900098476", "v": 147447121.0}, {"e": "800088702", "i": "800197601", "v": 144895675.0}, {"e": "800130907", "i": "800000118", "v": 141726341.0}, {"e": "890500675", "i": "800012189", "v": 127359643.0}, {"e": "860066942", "i": "899999092", "v": 126719345.0}, {"e": "800130907", "i": "891855438", "v": 125129711.0}, {"e": "800130907", "i": "900261353", "v": 124644844.0}, {"e": "800088702", "i": "899999092", "v": 121378954.0}, {"e": "805001157", "i": "900034438", "v": 120000000.0}, {"e": "800130907", "i": "900223749", "v": 117715480.0}, {"e": "800088702", "i": "890801201", "v": 115337551.0}, {"e": "800130907", "i": "901352353", "v": 113052390.0}, {"e": "800130907", "i": "890807591", "v": 112354849.0}, {"e": "860066942", "i": "900971006", "v": 110565389.0}, {"e": "800130907", "i": "900900122", "v": 107416192.0}, {"e": "800130907", "i": "890801201", "v": 107133668.0}, {"e": "890500675", "i": "900470642", "v": 103125781.0}, {"e": "805001157", "i": "900123436", "v": 100000000.0}, {"e": "800088702", "i": "800185449", "v": 97362356.0}, {"e": "800088702", "i": "860015536", "v": 85714443.0}, {"e": "800088702", "i": "900342064", "v": 83311598.0}, {"e": "800088702", "i": "899999032", "v": 81830387.0}, {"e": "900298372", "i": "892000501", "v": 79731987.0}, {"e": "900298372", "i": "800037021", "v": 79375406.0}, {"e": "860066942", "i": "900718172", "v": 78540192.0}, {"e": "860066942", "i": "900098550", "v": 77997584.0}, {"e": "900604350", "i": "900038926", "v": 74949380.0}, {"e": "900298372", "i": "900578105", "v": 71740071.0}, {"e": "800088702", "i": "805011262", "v": 69371064.0}, {"e": "800088702", "i": "891380054", "v": 67092041.0}, {"e": "860066942", "i": "800012189", "v": 64412448.0}, {"e": "860066942", "i": "900261353", "v": 58188192.0}, {"e": "800088702", "i": "890205361", "v": 53074474.0}, {"e": "800088702", "i": "900959048", "v": 51001082.0}, {"e": "800088702", "i": "899999123", "v": 49871475.0}, {"e": "800130907", "i": "824000687", "v": 48166702.0}, {"e": "800088702", "i": "891480000", "v": 43214816.0}, {"e": "800088702", "i": "800065396", "v": 39925000.0}, {"e": "800088702", "i": "824001041", "v": 39595608.0}, {"e": "800088702", "i": "900958564", "v": 38683485.0}, {"e": "800088702", "i": "900223749", "v": 38485386.0}, {"e": "806008394", "i": "892399994", "v": 38158585.0}, {"e": "900298372", "i": "860035992", "v": 37590126.0}, {"e": "800088702", "i": "900959051", "v": 35714483.0}, {"e": "860066942", "i": "890205361", "v": 35544081.0}, {"e": "800088702", "i": "899999151", "v": 33894463.0}, {"e": "900298372", "i": "860015536", "v": 29897238.0}, {"e": "800088702", "i": "891800231", "v": 25616078.0}, {"e": "800088702", "i": "901352353", "v": 23401011.0}, {"e": "860066942", "i": "800227072", "v": 23318430.0}, {"e": "800088702", "i": "890480135", "v": 22635619.0}, {"e": "800088702", "i": "900971006", "v": 22235261.0}, {"e": "860066942", "i": "891480000", "v": 21979690.0}, {"e": "800088702", "i": "890982264", "v": 21947632.0}, {"e": "800088702", "i": "800204153", "v": 20203820.0}, {"e": "800088702", "i": "901108368", "v": 19479136.0}, {"e": "900298372", "i": "860002566", "v": 17852500.0}, {"e": "900298372", "i": "805011262", "v": 17561055.0}, {"e": "860066942", "i": "900580962", "v": 17556335.0}, {"e": "800088702", "i": "800048954", "v": 16481610.0}, {"e": "800088702", "i": "860037950", "v": 16022824.0}, {"e": "800088702", "i": "800183943", "v": 15527166.0}, {"e": "800088702", "i": "899999017", "v": 15254097.0}, {"e": "800088702", "i": "891200528", "v": 14599109.0}, {"e": "800088702", "i": "900298928", "v": 14429718.0}, {"e": "806008394", "i": "860035992", "v": 14110046.0}, {"e": "800088702", "i": "800123572", "v": 14002981.0}, {"e": "860066942", "i": "891855847", "v": 13580282.0}, {"e": "806008394", "i": "830510991", "v": 13415239.0}, {"e": "800088702", "i": "830007355", "v": 13283278.0}, {"e": "800088702", "i": "800194798", "v": 12694024.0}, {"e": "800088702", "i": "891800570", "v": 12416064.0}, {"e": "837000084", "i": "890807591", "v": 12339306.0}, {"e": "800088702", "i": "891080015", "v": 11458724.0}, {"e": "800088702", "i": "901100223", "v": 11402208.0}, {"e": "860066942", "i": "901002487", "v": 10715935.0}, {"e": "860066942", "i": "813001952", "v": 10641206.0}, {"e": "837000084", "i": "900532504", "v": 9512370.0}, {"e": "800088702", "i": "801001440", "v": 9058512.0}, {"e": "800088702", "i": "891300047", "v": 8753014.0}, {"e": "800088702", "i": "800218979", "v": 8739881.0}, {"e": "837000084", "i": "891180134", "v": 8698815.0}, {"e": "806008394", "i": "812003851", "v": 8602445.0}, {"e": "800088702", "i": "901085352", "v": 8516137.0}, {"e": "800088702", "i": "820005389", "v": 8397995.0}, {"e": "800088702", "i": "900066347", "v": 8334624.0}, {"e": "800088702", "i": "901108114", "v": 8301988.0}, {"e": "800088702", "i": "800107179", "v": 7156554.0}, {"e": "860066942", "i": "901153925", "v": 6662268.0}, {"e": "800088702", "i": "806015201", "v": 6450338.0}, {"e": "800088702", "i": "900006037", "v": 6219761.0}, {"e": "800088702", "i": "891855438", "v": 6209540.0}, {"e": "837000084", "i": "890212568", "v": 5690430.0}, {"e": "800088702", "i": "812007194", "v": 5569214.0}, {"e": "860066942", "i": "891855438", "v": 5344872.0}, {"e": "806008394", "i": "800183943", "v": 5287556.0}, {"e": "860066942", "i": "890212568", "v": 5257918.0}, {"e": "837000084", "i": "890801989", "v": 5175006.0}, {"e": "800130907", "i": "806015201", "v": 5105531.0}, {"e": "860066942", "i": "890902922", "v": 4850120.0}, {"e": "860066942", "i": "822001338", "v": 4374016.0}, {"e": "860066942", "i": "901532463", "v": 4180646.0}, {"e": "860066942", "i": "900006037", "v": 3704734.0}, {"e": "800088702", "i": "891855847", "v": 3591248.0}, {"e": "800088702", "i": "800254132", "v": 3284566.0}, {"e": "860066942", "i": "800231215", "v": 3169443.0}, {"e": "860066942", "i": "901100223", "v": 2589270.0}, {"e": "800088702", "i": "811016192", "v": 2399747.0}, {"e": "800088702", "i": "811038014", "v": 2294986.0}, {"e": "860066942", "i": "820005389", "v": 2163547.0}, {"e": "860066942", "i": "891800570", "v": 1890827.0}, {"e": "800088702", "i": "820001277", "v": 1821643.0}, {"e": "837000084", "i": "891580002", "v": 1770400.0}, {"e": "860066942", "i": "802020334", "v": 1548400.0}, {"e": "800088702", "i": "830102646", "v": 1419253.0}, {"e": "800088702", "i": "890303461", "v": 1308330.0}, {"e": "806008394", "i": "899999092", "v": 1291807.0}, {"e": "800088702", "i": "800200789", "v": 1283521.0}, {"e": "800088702", "i": "821000831", "v": 1253444.0}, {"e": "800088702", "i": "800067515", "v": 1219861.0}, {"e": "806008394", "i": "800204153", "v": 1180389.0}, {"e": "806008394", "i": "900971006", "v": 1112131.0}, {"e": "800088702", "i": "800231235", "v": 1099176.0}, {"e": "860066942", "i": "890801989", "v": 1091777.0}]}, "process_meta": {"1 proceso de Enero 2026": {"files": 218}, "2 proceso de Enero 2026": {"files": 218}, "3_proceso_de_Enero_2026": {"files": 219}}, "meta": {"generated_at": "2026-01-28 16:48:55.886153", "total_files": 655, "total_global_amount": 627627709111.0}};
+    </script>
+
+    <!-- Dashboard Logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check data integrity
+            if (typeof window.ADRES_DATA === 'undefined') {
+                console.error("ADRES_DATA no encontrado. El marcador de inyección falló.");
+                return;
+            }
+
+            // Data Alias
+            const master = window.ADRES_DATA.master || {};
+            const history = window.ADRES_DATA.history || {};
+            const process_meta = window.ADRES_DATA.process_meta || {};
+
+            // Elements
+            const selectProcess = document.getElementById('process-selector');
+            const elTotal = document.getElementById('kpi-total');
+            const elIpsCount = document.getElementById('kpi-ips');
+            const elEpsCount = document.getElementById('kpi-eps');
+            const elRecords = document.getElementById('kpi-records');
+            const elFilesCount = document.getElementById('kpi-files-count');
+
+            const inputEPS = document.getElementById('input-eps');
+            const listEPS = document.getElementById('list-eps');
+            const inputIPS = document.getElementById('input-ips');
+            const listIPS = document.getElementById('list-ips');
+            const btnReset = document.getElementById('btn-reset');
+
+            let chartIPS = null;
+            let chartEPS = null;
+            let currentData = [];
+
+            // Register Chart plugins
+            Chart.register(ChartDataLabels);
+
+            // Formatters
+            const currencyFmt = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+            // 1. Setup Process Selector using available keys in history
+            const processKeys = Object.keys(history).sort().reverse();
+            selectProcess.innerHTML = "";
+
+            if (processKeys.length === 0) {
+                selectProcess.add(new Option("Sin Datos Disponibles", ""));
+            } else {
+                processKeys.forEach(key => selectProcess.add(new Option(key, key)));
+            }
+
+            // 2. Load Data Function
+            function loadProcess(processKey) {
+                if (!processKey) return;
+
+                const compressed = history[processKey] || [];
+
+                // Inflate Data (De-reference Master List)
+                currentData = compressed.map(item => ({
+                    eps: (master[item.e] || item.e || 'DESCONOCIDO').toUpperCase(),
+                    ips: (master[item.i] || item.i || 'DESCONOCIDO').toUpperCase(),
+                    nit: (item.i || '').toUpperCase(),
+                    value: item.v || 0
+                }));
+
+                refreshFilters(currentData);
+                updateDashboard();
+            }
+
+            // 3. Populate Datalists for Autocomplete
+            function refreshFilters(data) {
+                listEPS.innerHTML = '';
+                listIPS.innerHTML = '';
+
+                // Unique EPS
+                const epsSet = new Set(data.map(d => d.eps));
+                Array.from(epsSet).sort().forEach(eps => {
+                    const opt = document.createElement('option');
+                    opt.value = eps;
+                    listEPS.appendChild(opt);
+                });
+
+                // Unique IPS (Keyed by Name to avoid duplicate names with diff NITs if possible, or just unique names)
+                const ipsMap = new Map();
+                data.forEach(d => ipsMap.set(d.ips, d.nit)); // Map Name -> NIT
+
+                Array.from(ipsMap.keys()).sort().forEach(ipsName => {
+                    const opt = document.createElement('option');
+                    opt.value = ipsName;
+                    opt.setAttribute('data-nit', ipsMap.get(ipsName));
+                    listIPS.appendChild(opt);
+                });
+            }
+
+            // 4. Update UI Metrics & Charts
+            function updateDashboard() {
+                const filterEPS = inputEPS.value.toUpperCase().trim();
+                const filterIPS = inputIPS.value.toUpperCase().trim();
+
+                // Apply Filters
+                const filtered = currentData.filter(d => {
+                    const matchEPS = !filterEPS || d.eps.includes(filterEPS);
+                    const matchIPS = !filterIPS || d.ips.includes(filterIPS) || d.nit.includes(filterIPS);
+                    return matchEPS && matchIPS;
+                });
+
+                // KPIs
+                const totalVal = filtered.reduce((acc, curr) => acc + curr.value, 0);
+                elTotal.textContent = currencyFmt.format(totalVal);
+
+                const uniqueIPS = new Set(filtered.map(d => d.ips)).size;
+                elIpsCount.textContent = uniqueIPS;
+
+                const uniqueEPS = new Set(filtered.map(d => d.eps)).size;
+                elEpsCount.textContent = uniqueEPS;
+
+                elRecords.textContent = filtered.length;
+
+                // Files Count Metadata
+                const pKey = selectProcess.value;
+                const pMeta = process_meta[pKey] || {};
+                elFilesCount.textContent = pMeta.files || 0;
+
+                // Prepare Chart Data
+                updateCharts(filtered);
+            }
+
+            function updateCharts(data) {
+                // Aggregate Top IPS
+                const ipsAgg = {};
+                data.forEach(d => ipsAgg[d.ips] = (ipsAgg[d.ips] || 0) + d.value);
+                const sortedIPS = Object.entries(ipsAgg)
+                    .map(([k, v]) => ({ name: k, value: v }))
+                    .sort((a, b) => b.value - a.value)
+                    .slice(0, 15);
+
+                // Aggregate Top EPS
+                const epsAgg = {};
+                data.forEach(d => epsAgg[d.eps] = (epsAgg[d.eps] || 0) + d.value);
+                const sortedEPS = Object.entries(epsAgg)
+                    .map(([k, v]) => ({ name: k, value: v }))
+                    .sort((a, b) => b.value - a.value)
+                    .slice(0, 15);
+
+                renderChart('chartIPS', sortedIPS, '#0170B9', chartIPS, (c) => chartIPS = c);
+                renderChart('chartEPS', sortedEPS, '#7c3aed', chartEPS, (c) => chartEPS = c);
+            }
+
+            function renderChart(canvasId, data, color, chartInstance, setInstance) {
+                if (chartInstance) chartInstance.destroy();
+
+                const ctx = document.getElementById(canvasId).getContext('2d');
+                const newChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.map(d => d.name.substring(0, 30) + (d.name.length > 30 ? '...' : '')), // Truncate labels
+                        datasets: [{
+                            data: data.map(d => d.value),
+                            backgroundColor: color,
+                            barThickness: 20,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        return currencyFmt.format(context.raw);
+                                    }
+                                }
+                            },
+                            datalabels: {
+                                anchor: 'end',
+                                align: 'end',
+                                color: '#475569',
+                                font: { weight: 'bold', size: 10 },
+                                formatter: function (value) {
+                                    return '$' + (value / 1000000).toFixed(1) + 'M';
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                display: false,
+                                grid: { display: false }
+                            },
+                            y: {
+                                ticks: {
+                                    color: '#334155',
+                                    font: { size: 10, family: 'Montserrat' },
+                                    autoSkip: false
+                                },
+                                grid: { display: false }
+                            }
+                        },
+                        layout: {
+                            padding: { right: 40 }
+                        }
+                    }
+                });
+
+                setInstance(newChart);
+            }
+
+            // Listeners
+            selectProcess.addEventListener('change', (e) => loadProcess(e.target.value));
+            inputEPS.addEventListener('input', updateDashboard);
+            inputIPS.addEventListener('input', updateDashboard);
+            btnReset.addEventListener('click', () => {
+                inputEPS.value = '';
+                inputIPS.value = '';
+                updateDashboard();
+            });
+
+            // Initial Filter Override if needed
+            inputIPS.value = "900136436"; // Set default if requested or leave empty
+
+            // Init Load
+            if (processKeys.length > 0) {
+                selectProcess.value = processKeys[0];
+                loadProcess(processKeys[0]);
+            }
+
+            // Date
+            document.getElementById('last-update').textContent = new Date().toLocaleDateString('es-CO', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+        });
+    </script>
+</body>
+
+</html>
